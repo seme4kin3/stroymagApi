@@ -1,4 +1,6 @@
 ﻿using Application.Abstractions;
+using Application.Common;
+using Application.Products.DTOs;
 using Application.Products.Queries;
 using MediatR;
 
@@ -8,69 +10,76 @@ namespace Application.Products.Handlers
     public sealed class GetProductsByCategorySlugHandler(
         ICategoryRepository categories,
         IProductReadRepository products
-    ) : IRequestHandler<GetProductsByCategorySlugQuery, ProductListResultDto>
+    ) : IRequestHandler<GetProductsByCategorySlugQuery, PagedResult<ProductListItemDto>>
     {
-        public async Task<ProductListResultDto> Handle(GetProductsByCategorySlugQuery request, CancellationToken ct)
+        public async Task<PagedResult<ProductListItemDto>> Handle(GetProductsByCategorySlugQuery request, CancellationToken ct)
         {
-            // если slugPath не указан — вернуть просто список товаров
+            var page = request.Page > 0 ? request.Page : 1;
+            var pageSize = request.PageSize > 0 ? request.PageSize : 24;
+
             if (string.IsNullOrWhiteSpace(request.SlugPath))
             {
-                var (itemsAll, totalAll) = await products.GetAllAsync(request.Page, request.PageSize, ct);
-                return new ProductListResultDto(itemsAll, totalAll, request.Page, request.PageSize);
+                var (itemsAll, totalAll) = await products.GetAllAsync(page, pageSize, ct);
+                return new PagedResult<ProductListItemDto>(itemsAll, totalAll, page, pageSize);
             }
 
-            // 1. вытаскиваем все категории плоско
+            // (Id, ParentId, Slug)
             var flat = await categories.GetFlatAsync(ct);
-            // flat: (Id, ParentId, Slug)
 
-            // 2. разбиваем путь
+            // Ключ словаря — всегда GUID (null -> Guid.Empty)
+            var byParent = flat
+                .GroupBy(c => NormalizeParent(c.ParentId))
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Разбираем путь "a/b/c" (без учета регистра)
             var parts = request.SlugPath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (parts.Length == 0)
-            {
-                var (itemsAll, totalAll) = await products.GetAllAsync(request.Page, request.PageSize, ct);
-                return new ProductListResultDto(itemsAll, totalAll, request.Page, request.PageSize);
-            }
-
-            // 3. находим категорию по пути slug'ов
-            var currentParentId = (Guid?)null;
+            var currentParent = (Guid?)null; // стартуем с корня
             (Guid Id, Guid? ParentId, string Slug)? current = null;
+
             foreach (var slug in parts)
             {
-                current = flat.FirstOrDefault(c => c.Slug == slug && c.ParentId == currentParentId);
+                var key = NormalizeParent(currentParent);
+                if (!byParent.TryGetValue(key, out var children))
+                    throw new KeyNotFoundException($"Категория по пути '{request.SlugPath}' не найдена.");
+
+                current = children.FirstOrDefault(c => string.Equals(c.Slug, slug, StringComparison.OrdinalIgnoreCase));
                 if (current is null)
                     throw new KeyNotFoundException($"Категория по пути '{request.SlugPath}' не найдена.");
-                currentParentId = current.Value.Id;
+
+                currentParent = current.Value.Id; // переходим на следующий уровень
             }
 
-            var targetCategoryId = current!.Value.Id;
+            var targetId = current!.Value.Id;
 
-            // 4. собираем все дочерние категории (в т.ч. саму)
-            var allIds = CollectDescendants(flat, targetCategoryId);
+            // Собираем все потомки (включая саму)
+            var allIds = CollectDescendants(byParent, targetId);
 
-            // 5. вытаскиваем товары по этим категориям
-            var (items, total) = await products.GetByCategoryIdsAsync(allIds, request.Page, request.PageSize, ct);
-
-            return new ProductListResultDto(items, total, request.Page, request.PageSize);
+            var (items, total) = await products.GetByCategoryIdsAsync(allIds, page, pageSize, ct);
+            return new PagedResult<ProductListItemDto>(items, total, page, pageSize);
         }
 
+        // null / Guid.Empty -> Guid.Empty; иначе возвращаем сам Guid
+        private static Guid NormalizeParent(Guid? parentId) =>
+            parentId.HasValue && parentId.Value != Guid.Empty ? parentId.Value : Guid.Empty;
+
+        // byParent: Dictionary<Guid, List<(Id, ParentId, Slug)>>, где Guid.Empty — «корень»
         private static IReadOnlyList<Guid> CollectDescendants(
-            IReadOnlyList<(Guid Id, Guid? ParentId, string Slug)> flat,
+            Dictionary<Guid, List<(Guid Id, Guid? ParentId, string Slug)>> byParent,
             Guid rootId)
         {
             var result = new List<Guid> { rootId };
-
-            // очередь в ширину
             var queue = new Queue<Guid>();
             queue.Enqueue(rootId);
 
             while (queue.Count > 0)
             {
-                var parentId = queue.Dequeue();
-                var children = flat.Where(c => c.ParentId == parentId).Select(c => c.Id).ToList();
-                foreach (var childId in children)
+                var pid = queue.Dequeue();
+                if (!byParent.TryGetValue(pid, out var children)) continue;
+
+                foreach (var ch in children)
                 {
-                    result.Add(childId);
-                    queue.Enqueue(childId);
+                    result.Add(ch.Id);
+                    queue.Enqueue(ch.Id);
                 }
             }
 

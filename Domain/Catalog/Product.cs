@@ -5,7 +5,7 @@ namespace Domain.Catalog
     {
         public Guid Id { get; private set; } = Guid.NewGuid();
 
-        public string Sku { get; private set; }           // короткий SKU (внутренний)
+        public string Sku { get; private set; }           // штрихкод
         public string Article { get; private set; }       // артикул производителя
         public string Name { get; private set; }
         public string? Description { get; private set; }
@@ -13,6 +13,7 @@ namespace Domain.Catalog
         public Guid BrandId { get; private set; }
         public Brand? Brand { get; set; }
         public Guid CategoryId { get; private set; }
+        public Category? Category { get; set; }
 
         public decimal Price { get; private set; }
         public decimal? RecommendedRetailPrice { get; private set; }

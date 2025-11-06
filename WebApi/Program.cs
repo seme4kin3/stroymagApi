@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services
-    .AddApplication()                       // MediatR + FluentValidation pipeline
+    .AddApplication()                       
     .AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers().AddJsonOptions(_ => { });

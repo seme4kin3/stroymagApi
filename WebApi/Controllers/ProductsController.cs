@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/products")]
     public sealed class ProductsController(IMediator mediator) : ControllerBase
     {
         /// <summary>Единый поиск по строке q (SKU/Barcode/Name) с ранжированием и пагинацией</summary>
@@ -18,7 +18,7 @@ namespace WebApi.Controllers
             var result = await mediator.Send(new SearchLineQuery(q, page, pageSize), ct);
             return Ok(result);
         }
-        [HttpGet("products/{*slugPath}")]
+        [HttpGet("{*slugPath}")]
         public async Task<IActionResult> GetByCategory(
             string slugPath,
             [FromQuery] int page = 1,
@@ -27,6 +27,20 @@ namespace WebApi.Controllers
         {
             var result = await mediator.Send(new GetProductsByCategorySlugQuery(slugPath, page, pageSize), ct);
             return Ok(result);
+        }
+
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetDetails(Guid id, CancellationToken ct)
+        {
+            try
+            {
+                var dto = await mediator.Send(new GetProductDetailsQuery(id), ct);
+                return Ok(dto);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { error = "ProductNotFound", id });
+            }
         }
     }
 }

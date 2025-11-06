@@ -42,9 +42,10 @@ namespace Infrastructure.Configurations
                 .OnDelete(DeleteBehavior.Restrict);
 
             //b.HasOne<Brand>().WithMany().HasForeignKey(x => x.BrandId).OnDelete(DeleteBehavior.Restrict);
-            b.HasOne<Category>()
-                .WithMany()
+            b.HasOne(p => p.Category)
+                .WithMany(c => c.Products)
                 .HasForeignKey(x => x.CategoryId)
+                .HasConstraintName("FK_products_categories_CategoryId")
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

@@ -4,7 +4,7 @@ namespace Domain.Catalog
     public class ProductAttribute
     {
         public Guid Id { get; private set; } = Guid.NewGuid();
-        public Guid ProductId { get; private set; } = default!; // FK (EF проставит через конфиг)
+        public Guid ProductId { get; private set; } = default!; 
         public string Key { get; private set; }
         public string Value { get; private set; }
 

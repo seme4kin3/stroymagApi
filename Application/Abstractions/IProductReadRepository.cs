@@ -1,4 +1,4 @@
-﻿using Application.Products;
+﻿using Application.Products.DTOs;
 using Domain.Catalog;
 
 namespace Application.Abstractions
@@ -7,6 +7,7 @@ namespace Application.Abstractions
     {
         Task<Product?> GetBySkuAsync(string sku, CancellationToken ct);
         Task<Product?> GetByArticleAsync(string barcode, CancellationToken ct);
+        Task<ProductDetailsDto?> GetDetailsAsync(Guid id, CancellationToken ct);
 
         Task<(IReadOnlyList<Product> Items, int Total)> SearchByNameAsync(
             string nameLike, int page, int pageSize, CancellationToken ct);
@@ -14,8 +15,7 @@ namespace Application.Abstractions
         Task<(IReadOnlyList<Product> Items, int Total)> SearchAsync(
             string? sku, string? nameLike, string? barcode, int page, int pageSize, CancellationToken ct);
 
-        // ЕДИНЫЙ умный поиск
-        Task<(IReadOnlyList<Product> Items, int Total)> SearchSmartAsync(
+        Task<(IReadOnlyList<ProductListItemDto> Items, int Total)> SearchSmartAsync(
             string q, int page, int pageSize, CancellationToken ct);
 
         Task<(IReadOnlyList<ProductListItemDto> Items, int Total)> GetByCategoryIdsAsync(
@@ -24,7 +24,6 @@ namespace Application.Abstractions
             int pageSize,
             CancellationToken ct);
 
-        // выборка всех (если slug не указан) — опционально
         Task<(IReadOnlyList<ProductListItemDto> Items, int Total)> GetAllAsync(
             int page,
             int pageSize,

@@ -1,4 +1,5 @@
 ﻿using Application.Common;
+using Application.Products.DTOs;
 using MediatR;
 
 namespace Application.Products.Queries
@@ -10,5 +11,5 @@ namespace Application.Products.Queries
         string Q,
         int Page = 1,
         int PageSize = 20
-    ) : IRequest<PagedResult<ProductDto>>;
+    ) : IRequest<PagedResult<ProductListItemDto>>;
 }

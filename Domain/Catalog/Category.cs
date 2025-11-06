@@ -13,6 +13,7 @@ namespace Domain.Catalog
         public string? Slug { get; private set; }
 
         public string? ImageUrl { get; private set; }
+        public ICollection<Product> Products { get; private set; } = new List<Product>();
 
         private Category() { }
 

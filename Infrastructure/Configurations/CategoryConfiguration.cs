@@ -9,7 +9,7 @@ namespace Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Category> b)
         {
-            b.ToTable("categories", "stroymag");
+            b.ToTable("categories");
 
             b.HasKey(x => x.Id);
 
@@ -19,11 +19,9 @@ namespace Infrastructure.Configurations
 
             b.Property(x => x.ParentId);
 
-            // НОВОЕ: slug
             b.Property(x => x.Slug)
                 .HasMaxLength(200);
 
-            // НОВОЕ: image_url
             b.Property(x => x.ImageUrl)
                 .HasMaxLength(500);
 
@@ -33,10 +31,10 @@ namespace Infrastructure.Configurations
             // полезно: быстрый поиск по slug
             b.HasIndex(x => x.Slug);
 
-            b.HasOne<Category>()
-                .WithMany()
-                .HasForeignKey(x => x.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
+            //b.HasOne<Category>()
+            //    .WithMany()
+            //    .HasForeignKey(x => x.ParentId)
+            //    .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
