@@ -7,6 +7,19 @@ using Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string AllowLocalFrontend = "_allowLocalFrontend";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: AllowLocalFrontend, policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")     
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();                      
+    });
+});
 
 builder.Services
     .AddApplication()                       
@@ -33,6 +46,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<StroymagDbContext>();
     db.Database.Migrate();
 }
+
+app.UseCors(AllowLocalFrontend);
 
 app.UseHttpsRedirection();
 
