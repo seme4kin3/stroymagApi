@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-
 namespace Infrastructure.Import
 {
     public interface IExcelImportService
@@ -66,63 +65,61 @@ namespace Infrastructure.Import
             };
 
             // ============================================================
-            // PASS 1: СОБРАТЬ / СОЗДАТЬ ВСЕ КАТЕГОРИИ (по всему файлу)
+            // PASS 1: категории (собираем весь справочник)
             // ============================================================
 
-            // загрузим уже существующие категории из БД
             var categoriesByPath = await LoadCategoryPathsAsync(ct); // "Раздел/Группа/Подгруппа" -> Guid
-
             int categoriesUpserted = 0;
 
             foreach (var row in ws.RowsUsed().Skip(1))
             {
-                var section = S(row, COL.Section);
-                var group = S(row, COL.Group);
-                var subgroup = S(row, COL.Subgroup);
+                var parts = new[]
+                {
+                    S(row, COL.Section),
+                    S(row, COL.Group),
+                    S(row, COL.Subgroup)
+                }
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x!.Trim())
+                .ToArray();
 
-                var parts = new[] { section, group, subgroup }
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Select(x => x!.Trim())
-                    .ToArray();
-
-                if (parts.Length == 0)
-                    continue;
+                if (parts.Length == 0) continue;
 
                 var path = string.Join("/", parts);
+                if (categoriesByPath.ContainsKey(path)) continue;
 
-                if (categoriesByPath.ContainsKey(path))
-                    continue;
-
-                // создаём всю цепочку
                 var id = EnsureCategoryPathFull(parts, categoriesByPath);
-                if (id != Guid.Empty)
-                    categoriesUpserted++;
+                if (id != Guid.Empty) categoriesUpserted++;
             }
 
-            // один сейв после создания категорий
             await _db.SaveChangesAsync(ct);
 
             // ============================================================
-            // PASS 2: ОБРАБОТАТЬ ТОВАРЫ (до первого пустого SKU)
+            // PASS 2: справочники и текущие товары
             // ============================================================
 
-            // бренды
             var brandByName = await _db.Brands.AsNoTracking()
                 .ToDictionaryAsync(b => b.Name, b => b.Id, StringComparer.OrdinalIgnoreCase, ct);
 
-            // продукты (Guid)
-            var existingProductIds = new HashSet<Guid>(await _db.Products.AsNoTracking()
+            // Быстрый доступ к продуктам по SKU и по Id
+            var productsBySku = await _db.Products.AsNoTracking()
+                .Where(p => p.Sku != null && p.Sku != "")
+                .ToDictionaryAsync(p => p.Sku!, p => p.Id, StringComparer.OrdinalIgnoreCase, ct);
+
+            var productsById = new HashSet<Guid>(await _db.Products.AsNoTracking()
                 .Select(p => p.Id)
                 .ToListAsync(ct));
 
             int brandsUpserted = 0;
             int productsUpserted = 0;
             int processedRows = 0;
-            int? stoppedAtRow = null;
+            int? stoppedAtRow = null;      // больше не используется как «жёсткая» остановка
             string? message = null;
 
             const int BATCH_SIZE = 500;
             int batchCounter = 0;
+
+            var warnings = new List<string>();
 
             foreach (var row in ws.RowsUsed().Skip(1))
             {
@@ -131,26 +128,24 @@ namespace Infrastructure.Import
                 var subgroup = S(row, COL.Subgroup);
                 var article = S(row, COL.Article);
                 var name = S(row, COL.Name);
-                var brandName = S(row, COL.Brand);
+                var brandNameRaw = S(row, COL.Brand);
                 var hasStockStr = S(row, COL.HasStock);
-                var sku = S(row, COL.Sku);            // ОБЯЗАТЕЛЬНО
+                var sku = S(row, COL.Sku); // желателен
                 var price = D(row, COL.Price) ?? 0m;
                 var rrp = D(row, COL.Rrp);
 
-                // если штрихкод пуст — СТОП
+                // 1) SKU пуст — просто пропускаем строку (но не останавливаем импорт)
                 if (string.IsNullOrWhiteSpace(sku))
                 {
-                    stoppedAtRow = row.RowNumber();
-                    message = $"Обработка остановлена: пустой 'Штрих код' (SKU) в строке {stoppedAtRow}. " +
-                              $"Записано строк: {processedRows}.";
-                    _log.LogWarning(message);
-                    break;
+                    warnings.Add($"Строка {row.RowNumber()}: пустой SKU — пропуск.");
+                    continue;
                 }
 
-                // бренд
+                // 2) Бренд (нормализация)
                 Guid? brandId = null;
-                if (!string.IsNullOrWhiteSpace(brandName))
+                if (!string.IsNullOrWhiteSpace(brandNameRaw))
                 {
+                    var brandName = brandNameRaw!.Trim();
                     if (!brandByName.TryGetValue(brandName, out var bid))
                     {
                         var newBrand = new Brand(brandName);
@@ -162,7 +157,7 @@ namespace Infrastructure.Import
                     brandId = bid;
                 }
 
-                // категория
+                // 3) Категория
                 Guid? categoryId = null;
                 var parts = new[] { section, group, subgroup }
                     .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -173,27 +168,32 @@ namespace Infrastructure.Import
                 {
                     var path = string.Join("/", parts);
                     if (categoriesByPath.TryGetValue(path, out var cid))
-                    {
                         categoryId = cid;
-                    }
                 }
 
                 bool hasStock = hasStockStr?.Equals("да", StringComparison.OrdinalIgnoreCase) == true;
 
-                // детерминированный Guid под товар
-                var keyForGuid = !string.IsNullOrWhiteSpace(article)
-                    ? article!
-                    : (!string.IsNullOrWhiteSpace(name) ? name! : sku!);
-
-                var productId = CreateDeterministicGuid(keyForGuid);
-
-                if (!existingProductIds.Contains(productId))
+                // 4) Определяем идентичность товара
+                //    — приоритетно по SKU
+                Guid productId;
+                if (productsBySku.TryGetValue(sku!, out var existingId))
                 {
-                    var articleVal = !string.IsNullOrWhiteSpace(article) ? article! : keyForGuid;
+                    productId = existingId;
+                }
+                else
+                {
+                    // новый — генерим детерминированный Guid от SKU
+                    productId = CreateDeterministicGuid(sku!);
+                }
+
+                // 5) Upsert товара
+                if (!productsById.Contains(productId))
+                {
+                    var articleVal = !string.IsNullOrWhiteSpace(article) ? article! : sku!;
 
                     var product = new Product(
                         sku: sku!,
-                        name: name ?? keyForGuid,
+                        name: name ?? articleVal,
                         brandId: brandId ?? Guid.Empty,
                         categoryId: categoryId ?? Guid.Empty,
                         price: price,
@@ -203,25 +203,46 @@ namespace Infrastructure.Import
                         hasStock: hasStock
                     );
 
+                    // подставляем Id (детерминированный по SKU)
                     typeof(Product).GetProperty(nameof(Product.Id))!
                         .SetValue(product, productId);
 
                     _db.Products.Add(product);
-                    existingProductIds.Add(productId);
+                    productsById.Add(productId);
+                    productsBySku[sku!] = productId;
 
                     productsUpserted++;
                 }
                 else
                 {
-                    var product = await _db.Products.FirstAsync(p => p.Id == productId, ct);
-                    product.UpdateBasic(name ?? keyForGuid, product.Description, price, rrp, hasStock);
+                    // Товар существует: обновляем «лёгкие» поля и FK, если есть
+                    var product = new Product(
+                        sku: sku!,
+                        name: name ?? (article ?? sku),
+                        brandId: brandId ?? Guid.Empty,
+                        categoryId: categoryId ?? Guid.Empty,
+                        price: price,
+                        description: null,
+                        article: !string.IsNullOrWhiteSpace(article) ? article! : (name ?? sku),
+                        recommendedRetailPrice: rrp,
+                        hasStock: hasStock
+                    );
+
+                    typeof(Product).GetProperty(nameof(Product.Id))!.SetValue(product, productId);
+
+                    _db.Attach(product);
+                    // Обновляем только те поля, которые должны меняться
+                    _db.Entry(product).Property(p => p.Name).IsModified = true;
+                    _db.Entry(product).Property(p => p.Price).IsModified = true;
+                    _db.Entry(product).Property(p => p.RecommendedRetailPrice).IsModified = true;
+                    _db.Entry(product).Property(p => p.HasStock).IsModified = true;
+                    _db.Entry(product).Property(p => p.Sku).IsModified = true;
+                    _db.Entry(product).Property(p => p.Article).IsModified = true;
+
                     if (brandId.HasValue)
-                        typeof(Product).GetProperty(nameof(Product.BrandId))!.SetValue(product, brandId.Value);
+                        _db.Entry(product).Property(p => p.BrandId).IsModified = true;
                     if (categoryId.HasValue)
-                        typeof(Product).GetProperty(nameof(Product.CategoryId))!.SetValue(product, categoryId.Value);
-                    if (!string.IsNullOrWhiteSpace(article))
-                        product.SetArticle(article);
-                    typeof(Product).GetProperty(nameof(Product.Sku))!.SetValue(product, sku);
+                        _db.Entry(product).Property(p => p.CategoryId).IsModified = true;
                 }
 
                 processedRows++;
@@ -232,8 +253,10 @@ namespace Infrastructure.Import
 
             await _db.SaveChangesAsync(ct);
 
-            if (stoppedAtRow is null)
-                message = "Импорт завершён без остановки: достигнут конец файла.";
+            if (warnings.Count > 0)
+                message = string.Join(" | ", warnings.Take(5)) + (warnings.Count > 5 ? $" | и ещё {warnings.Count - 5} предупреждений" : "");
+            else
+                message = "Импорт завершён без предупреждений.";
 
             _log.LogInformation("Импорт: бренды={Brands}, категории={Cats}, товары={Prods}, обработано={Rows}. {Msg}",
                 brandsUpserted, categoriesUpserted, productsUpserted, processedRows, message);
@@ -243,7 +266,7 @@ namespace Infrastructure.Import
                 CategoriesUpserted: categoriesUpserted,
                 ProductsUpserted: productsUpserted,
                 ProcessedRows: processedRows,
-                StoppedAtRow: stoppedAtRow,
+                StoppedAtRow: stoppedAtRow, // оставил для совместимости с контрактом
                 Message: message
             );
         }
@@ -267,9 +290,6 @@ namespace Infrastructure.Import
             return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : null;
         }
 
-        /// <summary>
-        /// Подгружаем существующие категории и строим path -> id
-        /// </summary>
         private async Task<Dictionary<string, Guid>> LoadCategoryPathsAsync(CancellationToken ct)
         {
             var result = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
@@ -294,9 +314,6 @@ namespace Infrastructure.Import
             return result;
         }
 
-        /// <summary>
-        /// Создаём ВСЮ цепочку категорий сразу (root -> ... -> leaf), с нормальным slug
-        /// </summary>
         private Guid EnsureCategoryPathFull(string[] parts, Dictionary<string, Guid> cache)
         {
             Guid? parent = null;
@@ -323,9 +340,6 @@ namespace Infrastructure.Import
             return parent ?? Guid.Empty;
         }
 
-        /// <summary>
-        /// Нормальный простой транслит ru -> en
-        /// </summary>
         private static string ToSlug(string name)
         {
             name = name.Trim().ToLowerInvariant();
@@ -368,42 +382,20 @@ namespace Infrastructure.Import
             };
 
             var sb = new StringBuilder();
-
             foreach (var ch in name)
             {
-                if (map.TryGetValue(ch, out var rep))
-                {
-                    sb.Append(rep);
-                }
-                else if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'))
-                {
-                    sb.Append(ch);
-                }
-                else if (char.IsWhiteSpace(ch) || ch == '_' || ch == '-')
-                {
-                    sb.Append('-');
-                }
-                else
-                {
-                    // всё остальное → тире
-                    sb.Append('-');
-                }
+                if (map.TryGetValue(ch, out var rep)) sb.Append(rep);
+                else if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')) sb.Append(ch);
+                else if (char.IsWhiteSpace(ch) || ch == '_' || ch == '-') sb.Append('-');
+                else sb.Append('-');
             }
 
             var slug = sb.ToString();
-
-            // убрать повторяющиеся '-'
-            while (slug.Contains("--"))
-                slug = slug.Replace("--", "-");
-
+            while (slug.Contains("--")) slug = slug.Replace("--", "-");
             slug = slug.Trim('-');
-
             return string.IsNullOrWhiteSpace(slug) ? "category" : slug;
         }
 
-        /// <summary>
-        /// Детерминированный Guid по строке
-        /// </summary>
         private static Guid CreateDeterministicGuid(string input)
         {
             var ns = Guid.Parse("e5f4a7f4-3e2e-4cf5-9a25-2b0d2e5d3f01");
