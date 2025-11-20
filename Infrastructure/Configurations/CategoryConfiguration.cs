@@ -31,10 +31,16 @@ namespace Infrastructure.Configurations
             // полезно: быстрый поиск по slug
             b.HasIndex(x => x.Slug);
 
-            //b.HasOne<Category>()
-            //    .WithMany()
-            //    .HasForeignKey(x => x.ParentId)
-            //    .OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Category>()
+                .WithMany()
+                .HasForeignKey(x => x.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasMany(x => x.Attributes)
+                .WithOne()
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

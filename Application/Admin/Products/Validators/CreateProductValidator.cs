@@ -1,0 +1,18 @@
+﻿using Application.Admin.Products.Commands;
+using FluentValidation;
+
+namespace Application.Admin.Products.Validators
+{
+    public sealed class CreateProductValidator : AbstractValidator<CreateProductCommand>
+    {
+        public CreateProductValidator()
+        {
+            RuleFor(x => x.Sku).NotEmpty().MaximumLength(64);
+            RuleFor(x => x.Name).NotEmpty().MaximumLength(500);
+            RuleFor(x => x.BrandId).NotEmpty();
+            RuleFor(x => x.CategoryId).NotEmpty();
+            RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
+            RuleFor(x => x.Article).MaximumLength(128).When(x => x.Article != null);
+        }
+    }
+}

@@ -10,7 +10,16 @@ namespace Domain.Catalog
         private Brand() { }
         public Brand(string name)
         {
-            Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("Brand name required") : name.Trim();
+            Name = string.IsNullOrWhiteSpace(name)
+                ? throw new ArgumentException("Brand name required")
+                : name.Trim();
+        }
+
+        public void Rename(string name)
+        {
+            Name = string.IsNullOrWhiteSpace(name)
+                ? throw new ArgumentException("Brand name required")
+                : name.Trim();
         }
     }
 }

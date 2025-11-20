@@ -20,8 +20,9 @@ namespace Domain.Catalog
 
         public bool HasStock { get; private set; }        // есть ли остаток
 
-        public List<ProductAttribute> Attributes { get; private set; } = new();
+        //public List<ProductAttribute> Attributes { get; private set; } = new();
         public List<ProductImage> Images { get; private set; } = new();
+        public List<ProductAttributeValue> Attributes { get; private set; } = new();
 
         private Product() { }
 
@@ -59,6 +60,44 @@ namespace Domain.Catalog
         public void SetHasStock(bool value) => HasStock = value;
         public void SetRecommendedPrice(decimal? value) => RecommendedRetailPrice = value;
         public void SetArticle(string value) => Article = GuardText(value, 128, nameof(value));
+
+        /// <summary>
+        /// Применить значения атрибутов с учётом того, какие атрибуты привязаны к категории.
+        /// values: key = AttributeDefinition.Id, value = сырая строка из UI/импорта.
+        /// </summary>
+        public void ApplyAttributeValues(
+            Category category,
+            IReadOnlyDictionary<Guid, string?> values,
+            IReadOnlyDictionary<Guid, AttributeDefinition> attributeDefinitions)
+        {
+            if (category.Id != CategoryId)
+                throw new InvalidOperationException("Product category does not match provided category.");
+
+            var allowedAttrIds = category.Attributes
+                .Select(a => a.AttributeDefinitionId)
+                .ToHashSet();
+
+            Attributes.RemoveAll(a => !allowedAttrIds.Contains(a.AttributeDefinitionId));
+
+            foreach (var catAttr in category.Attributes)
+            {
+                if (!attributeDefinitions.TryGetValue(catAttr.AttributeDefinitionId, out var def))
+                    throw new InvalidOperationException("Attribute definition not found for category attribute.");
+
+                values.TryGetValue(def.Id, out var rawValue);
+
+                var existing = Attributes.SingleOrDefault(a => a.AttributeDefinitionId == def.Id);
+                if (existing is null)
+                {
+                    var val = ProductAttributeValue.CreateFromRaw(Id, def, rawValue);
+                    Attributes.Add(val);
+                }
+                else
+                {
+                    existing.SetValueFromRaw(def, rawValue);
+                }
+            }
+        }
 
         private static string GuardText(string value, int max, string name)
         {

@@ -34,7 +34,7 @@ namespace Domain.Sales
         public decimal UnitPrice { get; private set; }
         public decimal Qty { get; private set; }
 
-        private CartItem() { }
+        public CartItem() { }
         public CartItem(Guid productId, string name, decimal unitPrice, decimal qty)
         {
             ProductId = productId; Name = name; UnitPrice = unitPrice; Qty = qty;

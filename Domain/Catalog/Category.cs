@@ -1,4 +1,5 @@
-﻿
+﻿using System.Text;
+
 namespace Domain.Catalog
 {
     public class Category
@@ -9,10 +10,9 @@ namespace Domain.Catalog
 
         public Guid? ParentId { get; private set; }
 
-        // НОВОЕ
         public string? Slug { get; private set; }
-
         public string? ImageUrl { get; private set; }
+        public List<CategoryAttribute> Attributes { get; private set; } = new();
         public ICollection<Product> Products { get; private set; } = new List<Product>();
 
         private Category() { }
@@ -28,7 +28,7 @@ namespace Domain.Catalog
         public void Rename(string name)
         {
             SetName(name);
-            // если slug не задавали руками, можем тоже обновить
+
             if (string.IsNullOrWhiteSpace(Slug))
                 SetSlug(GenerateSlugFrom(name));
         }
@@ -70,19 +70,66 @@ namespace Domain.Catalog
             Name = name;
         }
 
+        /// <summary>
+        /// Привязать глобальный атрибут к категории.
+        /// </summary>
+        public CategoryAttribute AttachAttribute(
+            AttributeDefinition attr,
+            bool isRequired = false,
+            int sortOrder = 0)
+        {
+            if (!attr.IsActive)
+                throw new InvalidOperationException("Cannot attach inactive attribute.");
+
+            if (Attributes.Any(a => a.AttributeDefinitionId == attr.Id))
+                throw new InvalidOperationException("Attribute already attached to this category.");
+
+            var link = new CategoryAttribute(
+                categoryId: Id,
+                attributeDefinitionId: attr.Id,
+                isRequired: isRequired,
+                sortOrder: sortOrder
+            );
+
+            Attributes.Add(link);
+            return link;
+        }
+
+        /// <summary>
+        /// Обновление настроек привязки атрибута (обязательный, порядок).
+        /// </summary>
+        public void UpdateAttachedAttribute(Guid attributeDefinitionId, bool? isRequired = null, int? sortOrder = null)
+        {
+            var link = Attributes.SingleOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId)
+                ?? throw new InvalidOperationException("Attribute is not attached to this category.");
+
+            link.Update(isRequired, sortOrder);
+        }
+
+        /// <summary>
+        /// Открепить атрибут от категории.
+        /// (по желанию можно сделать мягкое удаление, но тут просто убираем связь)
+        /// </summary>
+        public void DetachAttribute(Guid attributeDefinitionId)
+        {
+            var link = Attributes.SingleOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId);
+            if (link is not null)
+                Attributes.Remove(link);
+        }
+
         private static string GenerateSlugFrom(string name)
         {
-            // примитивный транслит/слаг — дальше можно заменить на нормальный
+            // примитивный транслит/слаг
             var slug = name.Trim().ToLowerInvariant();
 
-            // заменим пробелы на тире
+
             slug = slug.Replace(' ', '-');
 
-            // уберём самое очевидное
+
             slug = slug.Replace("ё", "e");
 
-            // можно оставить только буквы/цифры/дефис
-            var sb = new System.Text.StringBuilder();
+
+            var sb = new StringBuilder();
             foreach (var ch in slug)
             {
                 if ((ch >= 'a' && ch <= 'z') ||

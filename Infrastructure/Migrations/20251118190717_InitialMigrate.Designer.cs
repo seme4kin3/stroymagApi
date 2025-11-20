@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(StroymagDbContext))]
-    [Migration("20251030185749_InitialMigrate")]
+    [Migration("20251118190717_InitialMigrate")]
     partial class InitialMigrate
     {
         /// <inheritdoc />
@@ -25,6 +25,42 @@ namespace Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Domain.Catalog.AttributeDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DataType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("attribute_definitions", "stroymag");
+                });
 
             modelBuilder.Entity("Domain.Catalog.Brand", b =>
                 {
@@ -75,6 +111,36 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("categories", "stroymag");
+                });
+
+            modelBuilder.Entity("Domain.Catalog.CategoryAttribute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AttributeDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttributeDefinitionId");
+
+                    b.HasIndex("CategoryId", "AttributeDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("category_attributes", "stroymag");
                 });
 
             modelBuilder.Entity("Domain.Catalog.InventoryItem", b =>
@@ -153,32 +219,36 @@ namespace Infrastructure.Migrations
                     b.ToTable("products", "stroymag");
                 });
 
-            modelBuilder.Entity("Domain.Catalog.ProductAttribute", b =>
+            modelBuilder.Entity("Domain.Catalog.ProductAttributeValue", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("ProductId")
-                        .HasMaxLength(64)
+                    b.Property<Guid>("AttributeDefinitionId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Value")
-                        .IsRequired()
+                    b.Property<bool?>("BoolValue")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("NumericValue")
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StringValue")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId", "Key")
+                    b.HasIndex("AttributeDefinitionId");
+
+                    b.HasIndex("ProductId", "AttributeDefinitionId")
                         .IsUnique();
 
-                    b.ToTable("product_attributes", "stroymag");
+                    b.ToTable("product_attribute_values", "stroymag");
                 });
 
             modelBuilder.Entity("Domain.Catalog.ProductImage", b =>
@@ -355,6 +425,21 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("Domain.Catalog.CategoryAttribute", b =>
+                {
+                    b.HasOne("Domain.Catalog.AttributeDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("AttributeDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Catalog.Category", null)
+                        .WithMany("Attributes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.Catalog.InventoryItem", b =>
                 {
                     b.HasOne("Domain.Catalog.Product", null)
@@ -366,21 +451,33 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Catalog.Product", b =>
                 {
-                    b.HasOne("Domain.Catalog.Brand", null)
-                        .WithMany()
+                    b.HasOne("Domain.Catalog.Brand", "Brand")
+                        .WithMany("Products")
                         .HasForeignKey("BrandId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_products_brands_BrandId");
 
-                    b.HasOne("Domain.Catalog.Category", null)
-                        .WithMany()
+                    b.HasOne("Domain.Catalog.Category", "Category")
+                        .WithMany("Products")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_products_categories_CategoryId");
+
+                    b.Navigation("Brand");
+
+                    b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("Domain.Catalog.ProductAttribute", b =>
+            modelBuilder.Entity("Domain.Catalog.ProductAttributeValue", b =>
                 {
+                    b.HasOne("Domain.Catalog.AttributeDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("AttributeDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Domain.Catalog.Product", null)
                         .WithMany("Attributes")
                         .HasForeignKey("ProductId")
@@ -422,6 +519,18 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Catalog.Brand", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Domain.Catalog.Category", b =>
+                {
+                    b.Navigation("Attributes");
+
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Domain.Catalog.Product", b =>

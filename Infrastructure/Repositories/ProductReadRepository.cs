@@ -206,67 +206,67 @@ namespace Infrastructure.Repositories
             return (items, total);
         }
 
-        public async Task<ProductDetailsDto?> GetDetailsAsync(Guid id, CancellationToken ct)
-        {
-            // базовый срез (товар + имя бренда + краткая категория)
-            var baseInfo = await db.Set<Product>()
-                .AsNoTracking()
-                .Where(p => p.Id == id)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.Sku,
-                    p.Article,
-                    p.Name,
-                    p.Description,
-                    p.Price,
-                    p.RecommendedRetailPrice,
-                    p.HasStock,
-                    BrandName = p.Brand != null
-                        ? p.Brand.Name
-                        : db.Set<Brand>().Where(b => b.Id == p.BrandId).Select(b => b.Name).FirstOrDefault(),
-                    CategoryBrief = p.Category != null
-                        ? new { p.Category.Id, p.Category.Name, p.Category.Slug }
-                        : db.Set<Category>().Where(c => c.Id == p.CategoryId)
-                                            .Select(c => new { c.Id, c.Name, c.Slug })
-                                            .FirstOrDefault()
-                })
-                .FirstOrDefaultAsync(ct);
+        //public async Task<ProductDetailsDto?> GetDetailsAsync(Guid id, CancellationToken ct)
+        //{
+        //    // базовый срез (товар + имя бренда + краткая категория)
+        //    var baseInfo = await db.Set<Product>()
+        //        .AsNoTracking()
+        //        .Where(p => p.Id == id)
+        //        .Select(p => new
+        //        {
+        //            p.Id,
+        //            p.Sku,
+        //            p.Article,
+        //            p.Name,
+        //            p.Description,
+        //            p.Price,
+        //            p.RecommendedRetailPrice,
+        //            p.HasStock,
+        //            BrandName = p.Brand != null
+        //                ? p.Brand.Name
+        //                : db.Set<Brand>().Where(b => b.Id == p.BrandId).Select(b => b.Name).FirstOrDefault(),
+        //            CategoryBrief = p.Category != null
+        //                ? new { p.Category.Id, p.Category.Name, p.Category.Slug }
+        //                : db.Set<Category>().Where(c => c.Id == p.CategoryId)
+        //                                    .Select(c => new { c.Id, c.Name, c.Slug })
+        //                                    .FirstOrDefault()
+        //        })
+        //        .FirstOrDefaultAsync(ct);
 
-            if (baseInfo is null)
-                return null;
+        //    if (baseInfo is null)
+        //        return null;
 
-            // изображения: только URL
-            var images = await db.Set<ProductImage>()
-                .AsNoTracking()
-                .Where(i => i.ProductId == baseInfo.Id)
-                .OrderBy(i => i.SortOrder)
-                .Select(i => i.Url)
-                .ToListAsync(ct);
+        //    // изображения: только URL
+        //    var images = await db.Set<ProductImage>()
+        //        .AsNoTracking()
+        //        .Where(i => i.ProductId == baseInfo.Id)
+        //        .OrderBy(i => i.SortOrder)
+        //        .Select(i => i.Url)
+        //        .ToListAsync(ct);
 
-            // атрибуты: словарь (Name/Key → Value). Оставляю Key, если у тебя именно так в модели.
-            var attributes = await db.Set<ProductAttribute>()
-                .AsNoTracking()
-                .Where(a => a.ProductId == baseInfo.Id)
-                .ToDictionaryAsync(a => a.Key, a => a.Value, ct);
+        //    // атрибуты: словарь (Name/Key → Value). Оставляю Key, если у тебя именно так в модели.
+        //    var attributes = await db.Set<ProductAttribute>()
+        //        .AsNoTracking()
+        //        .Where(a => a.ProductId == baseInfo.Id)
+        //        .ToDictionaryAsync(a => a.Key, a => a.Value, ct);
 
-            // сборка DTO (ужатый формат)
-            return new ProductDetailsDto(
-                Id: baseInfo.Id,
-                Sku: baseInfo.Sku,
-                Article: baseInfo.Article,
-                Name: baseInfo.Name,
-                Description: baseInfo.Description,
-                Brand: baseInfo.BrandName ?? string.Empty,
-                CategoryId: baseInfo.CategoryBrief?.Id ?? Guid.Empty,
-                CategoryName: baseInfo.CategoryBrief?.Name ?? string.Empty,
-                CategorySlug: baseInfo.CategoryBrief?.Slug ?? string.Empty,
-                Price: new PriceDto(baseInfo.Price, baseInfo.RecommendedRetailPrice),
-                InStock: baseInfo.HasStock,
-                Images: images,
-                Attributes: attributes
-            );
-        }
+        //    // сборка DTO (ужатый формат)
+        //    return new ProductDetailsDto(
+        //        Id: baseInfo.Id,
+        //        Sku: baseInfo.Sku,
+        //        Article: baseInfo.Article,
+        //        Name: baseInfo.Name,
+        //        Description: baseInfo.Description,
+        //        Brand: baseInfo.BrandName ?? string.Empty,
+        //        CategoryId: baseInfo.CategoryBrief?.Id ?? Guid.Empty,
+        //        CategoryName: baseInfo.CategoryBrief?.Name ?? string.Empty,
+        //        CategorySlug: baseInfo.CategoryBrief?.Slug ?? string.Empty,
+        //        Price: new PriceDto(baseInfo.Price, baseInfo.RecommendedRetailPrice),
+        //        InStock: baseInfo.HasStock,
+        //        Images: images,
+        //        Attributes: attributes
+        //    );
+        //}
 
         private static string CompactSpaces(string s)
         {

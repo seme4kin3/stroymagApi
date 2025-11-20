@@ -7,7 +7,7 @@ namespace Application.Abstractions
     {
         Task<Product?> GetBySkuAsync(string sku, CancellationToken ct);
         Task<Product?> GetByArticleAsync(string barcode, CancellationToken ct);
-        Task<ProductDetailsDto?> GetDetailsAsync(Guid id, CancellationToken ct);
+        //Task<ProductDetailsDto?> GetDetailsAsync(Guid id, CancellationToken ct);
 
         Task<(IReadOnlyList<Product> Items, int Total)> SearchByNameAsync(
             string nameLike, int page, int pageSize, CancellationToken ct);
