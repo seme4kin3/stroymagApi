@@ -14,6 +14,8 @@ namespace Application.Admin.Products
         decimal Price,
         decimal? RecommendedRetailPrice,
         bool HasStock,
-        IReadOnlyList<ProductAttributeValueDto> Attributes
+        IReadOnlyList<ProductAttributeValueDto> Attributes,
+        IReadOnlyList<string> Advantages,
+        IReadOnlyList<string> Complectation
     );
 }

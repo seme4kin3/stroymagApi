@@ -61,7 +61,9 @@ namespace Application.Admin.Products.Handlers
                     Price: p.Price,
                     RecommendedRetailPrice: p.RecommendedRetailPrice,
                     HasStock: p.HasStock,
-                    Attributes: attrDtos
+                    Attributes: attrDtos,
+                    Advantages: p.Advantages.ToList(),
+                    Complectation: p.Complectation.ToList()
                 );
             }).ToList();
 

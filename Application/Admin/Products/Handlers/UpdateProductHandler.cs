@@ -12,11 +12,9 @@ namespace Application.Admin.Products.Handlers
     {
         public async Task Handle(UpdateProductCommand request, CancellationToken ct)
         {
-            // 1. Подтягиваем продукт с его значениями атрибутов
             var product = await productRepo.GetWithAttributesAsync(request.Id, ct)
                 ?? throw new KeyNotFoundException("Product not found");
 
-            // 2. Обновляем basic-поля
             product.UpdateBasic(
                 name: request.Name,
                 description: request.Description,
@@ -31,11 +29,13 @@ namespace Application.Admin.Products.Handlers
                 product.SetArticle(request.Article);
             }
 
-            // 3. Подтягиваем категорию с привязками атрибутов (по текущему CategoryId продукта)
+            product.SetAdvantages(request.Advantages ?? Array.Empty<string>());
+            product.SetComplectation(request.Complectation ?? Array.Empty<string>());
+
+
             var category = await categoryRepo.GetWithAttributesAsync(product.CategoryId, ct)
                 ?? throw new InvalidOperationException("Product category not found");
 
-            // 4. Загружаем определения атрибутов категории
             var attachedAttrIds = category.Attributes
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
@@ -50,7 +50,6 @@ namespace Application.Admin.Products.Handlers
                     $"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 
-            // 5. Применяем значения атрибутов
             var values = request.AttributeValues ?? new Dictionary<Guid, string?>();
 
             product.ApplyAttributeValues(

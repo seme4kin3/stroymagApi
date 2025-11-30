@@ -18,9 +18,10 @@ namespace Domain.Catalog
         public decimal Price { get; private set; }
         public decimal? RecommendedRetailPrice { get; private set; }
 
-        public bool HasStock { get; private set; }        // есть ли остаток
+        public bool HasStock { get; private set; }       
 
-        //public List<ProductAttribute> Attributes { get; private set; } = new();
+        public List<string> Advantages { get; private set; } = new();
+        public List<string> Complectation { get; private set; } = new();
         public List<ProductImage> Images { get; private set; } = new();
         public List<ProductAttributeValue> Attributes { get; private set; } = new();
 
@@ -96,6 +97,46 @@ namespace Domain.Catalog
                 {
                     existing.SetValueFromRaw(def, rawValue);
                 }
+            }
+        }
+
+        public void SetAdvantages(IEnumerable<string>? advantages)
+        {
+            Advantages.Clear();
+
+            if (advantages is null)
+                return;
+
+            foreach (var a in advantages)
+            {
+                if (string.IsNullOrWhiteSpace(a))
+                    continue;
+
+                var trimmed = a.Trim();
+                if (trimmed.Length > 1000) // на всякий пожарный ограничим длину
+                    trimmed = trimmed[..1000];
+
+                Advantages.Add(trimmed);
+            }
+        }
+
+        public void SetComplectation(IEnumerable<string>? complectation)
+        {
+            Complectation.Clear();
+
+            if (complectation is null)
+                return;
+
+            foreach (var item in complectation)
+            {
+                if (string.IsNullOrWhiteSpace(item))
+                    continue;
+
+                var trimmed = item.Trim();
+                if (trimmed.Length > 1000)
+                    trimmed = trimmed[..1000];
+
+                Complectation.Add(trimmed);
             }
         }
 

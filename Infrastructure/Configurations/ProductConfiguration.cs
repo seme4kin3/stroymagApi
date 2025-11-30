@@ -1,6 +1,8 @@
 ﻿using Domain.Catalog;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Text.Json;
 
 namespace Infrastructure.Configurations
 {
@@ -34,6 +36,39 @@ namespace Infrastructure.Configurations
             b.HasIndex(x => x.Sku).IsUnique();
             b.HasIndex(x => x.Article);
             b.HasIndex(x => x.HasStock);
+
+            var listOfStringComparer = new ValueComparer<List<string>>(
+                 (c1, c2) =>
+                     ReferenceEquals(c1, c2) ||
+                     (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+                 c => c == null
+                     ? 0
+                     : c.Aggregate(0, (a, v) => HashCode.Combine(a, v != null ? v.GetHashCode() : 0)),
+                 c => c == null ? new List<string>() : c.ToList()
+             );
+
+            b.Property(p => p.Advantages)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null)
+                         ?? new List<string>(),
+                    listOfStringComparer
+                )
+                .HasColumnType("jsonb")
+                .HasColumnName("advantages")
+                .IsRequired(false);
+
+
+            b.Property(p => p.Complectation)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null)
+                         ?? new List<string>(),
+                    listOfStringComparer
+                )
+                .HasColumnType("jsonb")
+                .HasColumnName("complectation")
+                .IsRequired(false);
 
             b.HasOne(p => p.Brand)
                 .WithMany(bd => bd.Products)

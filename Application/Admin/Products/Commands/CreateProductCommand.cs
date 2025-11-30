@@ -13,6 +13,8 @@ namespace Application.Admin.Products.Commands
         string? Article = null,
         decimal? RecommendedRetailPrice = null,
         bool HasStock = false,
-        IReadOnlyDictionary<Guid, string?>? AttributeValues = null
+        IReadOnlyDictionary<Guid, string?>? AttributeValues = null,
+        IReadOnlyList<string>? Advantages = null,
+        IReadOnlyList<string>? Complectation = null
     ) : IRequest<Guid>;
 }

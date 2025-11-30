@@ -10,6 +10,8 @@ namespace Application.Admin.Products.Commands
         decimal? RecommendedRetailPrice,
         bool HasStock,
         string? Article,
-        IReadOnlyDictionary<Guid, string?>? AttributeValues
+        IReadOnlyDictionary<Guid, string?>? AttributeValues,
+        IReadOnlyList<string>? Advantages,
+        IReadOnlyList<string>? Complectation
     ) : IRequest;
 }

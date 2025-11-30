@@ -2,11 +2,6 @@
 using Application.Admin.Products.Commands;
 using Domain.Catalog;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Admin.Products.Handlers
 {
@@ -18,11 +13,11 @@ namespace Application.Admin.Products.Handlers
     {
         public async Task<Guid> Handle(CreateProductCommand request, CancellationToken ct)
         {
-            // 1. Подтягиваем категорию с привязанными атрибутами
+            // 1. Категория с привязанными атрибутами
             var category = await categoryRepo.GetWithAttributesAsync(request.CategoryId, ct)
                 ?? throw new KeyNotFoundException("Category not found");
 
-            // 2. Загружаем определения атрибутов, которые привязаны к категории
+            // 2. Определения атрибутов
             var attachedAttrIds = category.Attributes
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
@@ -37,7 +32,7 @@ namespace Application.Admin.Products.Handlers
                     $"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 
-            // 3. Создаём доменную сущность Product
+            // 3. Создаём доменный Product
             var product = new Product(
                 sku: request.Sku,
                 name: request.Name,
@@ -50,7 +45,11 @@ namespace Application.Admin.Products.Handlers
                 hasStock: request.HasStock
             );
 
-            // 4. Применяем значения атрибутов (если они переданы)
+            // ➕ новые поля в домене
+            product.SetAdvantages(request.Advantages ?? Array.Empty<string>());
+            product.SetComplectation(request.Complectation ?? Array.Empty<string>());
+
+            // 4. Атрибуты товара
             var values = request.AttributeValues ?? new Dictionary<Guid, string?>();
 
             product.ApplyAttributeValues(
@@ -59,7 +58,7 @@ namespace Application.Admin.Products.Handlers
                 attributeDefinitions: attrDefs
             );
 
-            // 5. Сохраняем
+            // 5. Сохранение
             await productRepo.AddAsync(product, ct);
             await productRepo.SaveChangesAsync(ct);
 
