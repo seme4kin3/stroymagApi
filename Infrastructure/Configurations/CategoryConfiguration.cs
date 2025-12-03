@@ -9,38 +9,41 @@ namespace Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Category> b)
         {
-            b.ToTable("categories");
+            b.ToTable("categories", "stroymag");
 
             b.HasKey(x => x.Id);
+
+            b.Property(x => x.Id)
+                .ValueGeneratedNever();
 
             b.Property(x => x.Name)
                 .HasMaxLength(200)
                 .IsRequired();
 
-            b.Property(x => x.ParentId);
-
             b.Property(x => x.Slug)
-                .HasMaxLength(200);
+                .HasMaxLength(300);
+
+            b.HasIndex(x => x.Slug);
 
             b.Property(x => x.ImageUrl)
                 .HasMaxLength(500);
 
-            // уникальность имени в рамках родителя
-            b.HasIndex(x => new { x.ParentId, x.Name }).IsUnique();
+            b.Property(x => x.ParentId);
 
-            // полезно: быстрый поиск по slug
-            b.HasIndex(x => x.Slug);
-
-            b.HasOne<Category>()
-                .WithMany()
+            b.HasOne(x => x.Parent)
+                .WithMany(x => x.Children)
                 .HasForeignKey(x => x.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            b.HasMany(x => x.Attributes)
-                .WithOne()
-                .HasForeignKey(x => x.CategoryId)
+            b.HasMany(x => x.CategoryAttributes)
+                .WithOne(ca => ca.Category)
+                .HasForeignKey(ca => ca.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            b.HasMany(x => x.Products)
+                .WithOne(p => p.Category)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

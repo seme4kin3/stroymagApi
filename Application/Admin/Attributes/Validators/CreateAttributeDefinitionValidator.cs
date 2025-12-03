@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace Application.Admin.Attributes.Validators
 {
-    public sealed class CreateAttributeDefinitionValidator : AbstractValidator<CreateAttributeDefinitionCommand>
+    public sealed class CreateAttributeDefinitionValidator : AbstractValidator<CreateAttributeCommand>
     {
         public CreateAttributeDefinitionValidator()
         {

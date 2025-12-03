@@ -12,8 +12,11 @@ namespace Domain.Catalog
 
         public string? Slug { get; private set; }
         public string? ImageUrl { get; private set; }
-        public List<CategoryAttribute> Attributes { get; private set; } = new();
-        public ICollection<Product> Products { get; private set; } = new List<Product>();
+        public virtual Category? Parent { get; private set; }
+        public virtual ICollection<Category> Children { get; private set; } = new List<Category>();
+
+        public virtual ICollection<CategoryAttribute> CategoryAttributes { get; private set; } = new List<CategoryAttribute>();
+        public virtual ICollection<Product> Products { get; private set; } = new List<Product>();
 
         private Category() { }
 
@@ -74,47 +77,46 @@ namespace Domain.Catalog
         /// Привязать глобальный атрибут к категории.
         /// </summary>
         public CategoryAttribute AttachAttribute(
-            AttributeDefinition attr,
-            bool isRequired = false,
-            int sortOrder = 0)
+             AttributeDefinition definition,
+             MeasurementUnit? unit,
+             bool isRequired = false,
+             int sortOrder = 0)
         {
-            if (!attr.IsActive)
+            if (!definition.IsActive)
                 throw new InvalidOperationException("Cannot attach inactive attribute.");
 
-            if (Attributes.Any(a => a.AttributeDefinitionId == attr.Id))
+            if (CategoryAttributes.Any(a => a.AttributeDefinitionId == definition.Id))
                 throw new InvalidOperationException("Attribute already attached to this category.");
 
             var link = new CategoryAttribute(
                 categoryId: Id,
-                attributeDefinitionId: attr.Id,
+                attributeDefinitionId: definition.Id,
+                unitId: unit?.Id,
                 isRequired: isRequired,
                 sortOrder: sortOrder
             );
 
-            Attributes.Add(link);
+            CategoryAttributes.Add(link);
             return link;
         }
 
-        /// <summary>
-        /// Обновление настроек привязки атрибута (обязательный, порядок).
-        /// </summary>
-        public void UpdateAttachedAttribute(Guid attributeDefinitionId, bool? isRequired = null, int? sortOrder = null)
+        public void UpdateAttachedAttribute(
+            Guid attributeDefinitionId,
+            Guid? unitId = null,
+            bool? isRequired = null,
+            int? sortOrder = null)
         {
-            var link = Attributes.SingleOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId)
+            var link = CategoryAttributes.SingleOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId)
                 ?? throw new InvalidOperationException("Attribute is not attached to this category.");
 
-            link.Update(isRequired, sortOrder);
+            link.Update(unitId, isRequired, sortOrder);
         }
 
-        /// <summary>
-        /// Открепить атрибут от категории.
-        /// (по желанию можно сделать мягкое удаление, но тут просто убираем связь)
-        /// </summary>
         public void DetachAttribute(Guid attributeDefinitionId)
         {
-            var link = Attributes.SingleOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId);
+            var link = CategoryAttributes.SingleOrDefault(a => a.AttributeDefinitionId == attributeDefinitionId);
             if (link is not null)
-                Attributes.Remove(link);
+                CategoryAttributes.Remove(link);
         }
 
         private static string GenerateSlugFrom(string name)

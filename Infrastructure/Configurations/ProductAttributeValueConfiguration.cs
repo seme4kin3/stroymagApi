@@ -13,6 +13,9 @@ namespace Infrastructure.Configurations
 
             b.HasKey(x => x.Id);
 
+            b.Property(x => x.Id)
+                .ValueGeneratedNever();
+
             b.Property(x => x.ProductId)
                 .IsRequired();
 
@@ -27,17 +30,16 @@ namespace Infrastructure.Configurations
 
             b.Property(x => x.BoolValue);
 
-            // один товар может иметь максимум одно значение атрибута (логично)
             b.HasIndex(x => new { x.ProductId, x.AttributeDefinitionId })
                 .IsUnique();
 
-            b.HasOne<Product>()
+            b.HasOne(x => x.Product)
                 .WithMany(p => p.Attributes)
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            b.HasOne<AttributeDefinition>()
-                .WithMany()
+            b.HasOne(x => x.AttributeDefinition)
+                .WithMany(d => d.ProductValues)
                 .HasForeignKey(x => x.AttributeDefinitionId)
                 .OnDelete(DeleteBehavior.Restrict);
         }

@@ -10,32 +10,73 @@ namespace Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Product> b)
         {
-            b.ToTable("products");
+            b.ToTable("products", "stroymag");
 
             b.HasKey(x => x.Id);
-            b.Property(x => x.Id).HasMaxLength(64);
 
-            b.Property(x => x.Sku).HasMaxLength(64).IsRequired();
-            b.Property(x => x.Article).HasMaxLength(128).IsRequired();
-            b.Property(x => x.Name).HasMaxLength(500).IsRequired();
-            b.Property(x => x.Description).HasMaxLength(4000);
+            b.Property(x => x.Id)
+                .ValueGeneratedNever();
 
-            b.Property(x => x.Price).HasColumnType("numeric(18,2)").IsRequired();
-            b.Property(x => x.RecommendedRetailPrice)
+            b.Property(x => x.Sku)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            b.Property(x => x.Article)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            b.Property(x => x.Name)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            b.Property(x => x.Description)
+                .HasMaxLength(4000);
+
+            b.Property(x => x.BrandId)
+                .IsRequired();
+
+            b.Property(x => x.CategoryId)
+                .IsRequired();
+
+            b.Property(x => x.UnitId)
+                .IsRequired();
+
+            b.Property(x => x.Price)
                 .HasColumnType("numeric(18,2)")
-                .HasColumnName("Rrp")
-                .IsRequired(false);
+                .IsRequired();
+
+            b.Property(x => x.RecommendedRetailPrice)
+                .HasColumnType("numeric(18,2)");
 
             b.Property(x => x.HasStock)
-                .HasDefaultValue(true)
-                .HasColumnName("Has_Stock");
+                .IsRequired();
 
-            b.Property(x => x.BrandId).IsRequired();
-            b.Property(x => x.CategoryId).IsRequired();
+            // ----- связи -----
 
-            b.HasIndex(x => x.Sku).IsUnique();
-            b.HasIndex(x => x.Article);
-            b.HasIndex(x => x.HasStock);
+            b.HasOne(x => x.Brand)
+                .WithMany(br => br.Products)
+                .HasForeignKey(x => x.BrandId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Unit)
+                .WithMany(u => u.Products)
+                .HasForeignKey(x => x.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasMany(x => x.Images)
+                .WithOne()
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasMany(x => x.Attributes)
+                .WithOne(v => v.Product)
+                .HasForeignKey(v => v.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             var listOfStringComparer = new ValueComparer<List<string>>(
                  (c1, c2) =>
@@ -70,18 +111,6 @@ namespace Infrastructure.Configurations
                 .HasColumnName("complectation")
                 .IsRequired(false);
 
-            b.HasOne(p => p.Brand)
-                .WithMany(bd => bd.Products)
-                .HasForeignKey(p => p.BrandId)
-                .HasConstraintName("FK_products_brands_BrandId")
-                .OnDelete(DeleteBehavior.Restrict);
-
-            //b.HasOne<Brand>().WithMany().HasForeignKey(x => x.BrandId).OnDelete(DeleteBehavior.Restrict);
-            b.HasOne(p => p.Category)
-                .WithMany(c => c.Products)
-                .HasForeignKey(x => x.CategoryId)
-                .HasConstraintName("FK_products_categories_CategoryId")
-                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

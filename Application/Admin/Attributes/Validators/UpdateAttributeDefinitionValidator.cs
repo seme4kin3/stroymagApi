@@ -4,7 +4,7 @@ using FluentValidation;
 namespace Application.Admin.Attributes.Validators
 {
     public sealed class UpdateAttributeDefinitionValidator
-        : AbstractValidator<UpdateAttributeDefinitionCommand>
+        : AbstractValidator<UpdateAttributeCommand>
     {
         public UpdateAttributeDefinitionValidator()
         {
@@ -20,10 +20,6 @@ namespace Application.Admin.Attributes.Validators
 
             RuleFor(x => x.DataType)
                 .IsInEnum();
-
-            RuleFor(x => x.Unit)
-                .MaximumLength(50)
-                .When(x => x.Unit != null);
         }
     }
 }

@@ -9,20 +9,18 @@ namespace Domain.Catalog
         public string Key { get; private set; }       // "power"
         public AttributeDataType DataType { get; private set; }
 
-        /// <summary>Единица измерения: "Вт", "мм", "кг" и т.п.</summary>
-        public string? Unit { get; private set; }
-
         /// <summary>Активен ли атрибут (мягкое удаление).</summary>
         public bool IsActive { get; private set; } = true;
+        public virtual ICollection<CategoryAttribute> CategoryAttributes { get; private set; } = new List<CategoryAttribute>();
+        public virtual ICollection<ProductAttributeValue> ProductValues { get; private set; } = new List<ProductAttributeValue>();
 
         private AttributeDefinition() { }
 
-        public AttributeDefinition(string name, string key, AttributeDataType dataType, string? unit)
+        public AttributeDefinition(string name, string key, AttributeDataType dataType)
         {
             SetName(name);
             SetKey(key);
             DataType = dataType;
-            SetUnit(unit);
         }
 
         public void Rename(string name) => SetName(name);
@@ -31,7 +29,6 @@ namespace Domain.Catalog
 
         public void ChangeType(AttributeDataType dataType) => DataType = dataType;
 
-        public void ChangeUnit(string? unit) => SetUnit(unit);
 
         public void Deactivate() => IsActive = false;
 
@@ -49,11 +46,6 @@ namespace Domain.Catalog
             if (string.IsNullOrWhiteSpace(key))
                 throw new ArgumentException("Attribute key is required", nameof(key));
             Key = key.Trim().ToLowerInvariant();
-        }
-
-        private void SetUnit(string? unit)
-        {
-            Unit = string.IsNullOrWhiteSpace(unit) ? null : unit.Trim();
         }
     }
 }

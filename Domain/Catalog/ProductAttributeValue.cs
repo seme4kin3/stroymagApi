@@ -13,6 +13,9 @@ namespace Domain.Catalog
         public decimal? NumericValue { get; private set; }
         public bool? BoolValue { get; private set; }
 
+        public virtual Product Product { get; private set; } = default!;
+        public virtual AttributeDefinition AttributeDefinition { get; private set; } = default!;
+
         private ProductAttributeValue() { }
 
         private ProductAttributeValue(Guid productId, Guid attributeDefinitionId)
@@ -49,31 +52,31 @@ namespace Domain.Catalog
                     break;
 
                 case AttributeDataType.Integer:
-                    if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intVal))
-                        throw new FormatException($"Cannot parse '{raw}' as integer for attribute '{def.Name}'.");
+                    if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
+                        throw new FormatException($"Cannot parse '{raw}' as int for attribute '{def.Name}'.");
                     StringValue = raw;
-                    NumericValue = intVal;
+                    NumericValue = i;
                     BoolValue = null;
                     break;
 
                 case AttributeDataType.Decimal:
-                    if (!decimal.TryParse(raw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var decVal))
+                    if (!decimal.TryParse(raw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
                         throw new FormatException($"Cannot parse '{raw}' as decimal for attribute '{def.Name}'.");
                     StringValue = raw;
-                    NumericValue = decVal;
+                    NumericValue = d;
                     BoolValue = null;
                     break;
 
                 case AttributeDataType.Boolean:
                     var n = raw.ToLowerInvariant();
-                    bool boolVal = n is "1" or "true" or "да" or "yes";
+                    var b = n is "1" or "true" or "yes" or "да";
                     StringValue = n;
                     NumericValue = null;
-                    BoolValue = boolVal;
+                    BoolValue = b;
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(def.DataType), $"Unsupported data type {def.DataType}");
+                    throw new ArgumentOutOfRangeException(nameof(def.DataType), $"Unsupported type {def.DataType}");
             }
         }
     }

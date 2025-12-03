@@ -17,6 +17,7 @@ namespace Infrastructure
         public DbSet<ProductImage> ProductImages => Set<ProductImage>();
         public DbSet<InventoryItem> Inventory => Set<InventoryItem>();
         public DbSet<ProductAttributeValue> ProductAttributeValues => Set<ProductAttributeValue>();
+        public DbSet<MeasurementUnit> MeasurementUnits => Set<MeasurementUnit>();
 
         public DbSet<Customer> Customers => Set<Customer>();
         public DbSet<Cart> Carts => Set<Cart>();
@@ -28,9 +29,6 @@ namespace Infrastructure
             modelBuilder.HasDefaultSchema("stroymag");
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(StroymagDbContext).Assembly);
 
-            //modelBuilder.ApplyConfiguration(new ProductConfiguration());
-            //modelBuilder.ApplyConfiguration(new BrandConfiguration());
-            //modelBuilder.ApplyConfiguration(new CategoryConfiguration());
         }
     }
 }

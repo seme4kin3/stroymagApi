@@ -8,22 +8,43 @@ namespace Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<ProductImage> b)
         {
-            b.ToTable("product_images");
-            b.HasKey(x => x.Id);
-            b.Property(x => x.ProductId).HasMaxLength(64).IsRequired();
-            b.Property(x => x.Url).HasMaxLength(1000).IsRequired();
-            b.Property(x => x.StoragePath).HasMaxLength(1000).IsRequired();
-            b.Property(x => x.Alt).HasMaxLength(500);
-            b.Property(x => x.SortOrder).HasDefaultValue(0);
-            b.Property(x => x.IsPrimary).HasDefaultValue(false);
+            b.ToTable("product_images", "stroymag");
 
-            b.HasIndex(x => new { x.ProductId, x.IsPrimary });
+            b.HasKey(x => x.Id);
+
+            b.Property(x => x.Id)
+                .ValueGeneratedNever();
+
+            b.Property(x => x.ProductId)
+                .IsRequired();
+
+            b.Property(x => x.Url)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            b.Property(x => x.StoragePath)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            b.Property(x => x.Alt)
+                .HasMaxLength(500);
+
+            b.Property(x => x.IsPrimary)
+                .IsRequired();
+
+            b.Property(x => x.SortOrder)
+                .HasDefaultValue(0)
+                .IsRequired();
+
+            b.Property(x => x.CreatedAtUtc)
+                .IsRequired();
+
             b.HasIndex(x => new { x.ProductId, x.SortOrder });
 
             b.HasOne<Product>()
-             .WithMany(p => p.Images)
-             .HasForeignKey(x => x.ProductId)
-             .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(p => p.Images)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

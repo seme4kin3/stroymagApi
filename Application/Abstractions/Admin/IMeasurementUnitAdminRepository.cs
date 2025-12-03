@@ -1,0 +1,16 @@
+﻿using Domain.Catalog;
+
+namespace Application.Abstractions.Admin
+{
+    public interface IMeasurementUnitAdminRepository
+    {
+        Task AddAsync(MeasurementUnit unit, CancellationToken ct);
+
+        Task<MeasurementUnit?> GetAsync(Guid id, CancellationToken ct);
+
+        Task<(IReadOnlyList<MeasurementUnit> Items, int Total)> GetPagedAsync(
+            int page, int pageSize, CancellationToken ct);
+
+        Task SaveChangesAsync(CancellationToken ct);
+    }
+}

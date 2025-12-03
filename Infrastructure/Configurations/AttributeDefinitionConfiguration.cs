@@ -12,8 +12,11 @@ namespace Infrastructure.Configurations
 
             b.HasKey(x => x.Id);
 
+            b.Property(x => x.Id)
+                .ValueGeneratedNever();
+
             b.Property(x => x.Name)
-                .HasMaxLength(200)
+                .HasMaxLength(300)
                 .IsRequired();
 
             b.Property(x => x.Key)
@@ -24,15 +27,22 @@ namespace Infrastructure.Configurations
                 .IsUnique();
 
             b.Property(x => x.DataType)
-                .HasConversion<int>()        // enum -> int
+                .HasConversion<int>()
                 .IsRequired();
-
-            b.Property(x => x.Unit)
-                .HasMaxLength(50);
 
             b.Property(x => x.IsActive)
                 .HasDefaultValue(true)
                 .IsRequired();
+
+            b.HasMany(x => x.CategoryAttributes)
+                .WithOne(ca => ca.AttributeDefinition)
+                .HasForeignKey(ca => ca.AttributeDefinitionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasMany(x => x.ProductValues)
+                .WithOne(v => v.AttributeDefinition)
+                .HasForeignKey(v => v.AttributeDefinitionId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

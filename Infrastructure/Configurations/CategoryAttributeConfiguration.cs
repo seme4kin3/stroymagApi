@@ -1,11 +1,7 @@
 ﻿using Domain.Catalog;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Infrastructure.Configurations
 {
@@ -17,11 +13,16 @@ namespace Infrastructure.Configurations
 
             b.HasKey(x => x.Id);
 
+            b.Property(x => x.Id)
+                .ValueGeneratedNever();
+
             b.Property(x => x.CategoryId)
                 .IsRequired();
 
             b.Property(x => x.AttributeDefinitionId)
                 .IsRequired();
+
+            b.Property(x => x.UnitId);
 
             b.Property(x => x.IsRequired)
                 .IsRequired();
@@ -30,18 +31,22 @@ namespace Infrastructure.Configurations
                 .HasDefaultValue(0)
                 .IsRequired();
 
-            // один и тот же атрибут в категории — только один раз
             b.HasIndex(x => new { x.CategoryId, x.AttributeDefinitionId })
                 .IsUnique();
 
-            b.HasOne<Category>()
-                .WithMany(c => c.Attributes)
+            b.HasOne(x => x.Category)
+                .WithMany(c => c.CategoryAttributes)
                 .HasForeignKey(x => x.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            b.HasOne<AttributeDefinition>()
-                .WithMany()
+            b.HasOne(x => x.AttributeDefinition)
+                .WithMany(d => d.CategoryAttributes)
                 .HasForeignKey(x => x.AttributeDefinitionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.Unit)
+                .WithMany(u => u.CategoryAttributes)
+                .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

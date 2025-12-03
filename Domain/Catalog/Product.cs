@@ -5,20 +5,27 @@ namespace Domain.Catalog
     {
         public Guid Id { get; private set; } = Guid.NewGuid();
 
-        public string Sku { get; private set; }           // штрихкод
-        public string Article { get; private set; }       // артикул производителя
+        /// <summary>Штрихкод.</summary>
+        public string Sku { get; private set; }
+
+        /// <summary>Артикул производителя.</summary>
+        public string Article { get; private set; }
+
         public string Name { get; private set; }
         public string? Description { get; private set; }
 
         public Guid BrandId { get; private set; }
-        public Brand? Brand { get; set; }
+        public virtual Brand Brand { get; private set; } = default!;
+
         public Guid CategoryId { get; private set; }
-        public Category? Category { get; set; }
+        public virtual Category Category { get; private set; } = default!;
+
+        public Guid UnitId { get; private set; }
+        public virtual MeasurementUnit Unit { get; private set; } = default!;
 
         public decimal Price { get; private set; }
         public decimal? RecommendedRetailPrice { get; private set; }
-
-        public bool HasStock { get; private set; }       
+        public bool HasStock { get; private set; }
 
         public List<string> Advantages { get; private set; } = new();
         public List<string> Complectation { get; private set; } = new();
@@ -32,6 +39,7 @@ namespace Domain.Catalog
             string name,
             Guid brandId,
             Guid categoryId,
+            Guid unitId,
             decimal price,
             string? description = null,
             string? article = null,
@@ -41,26 +49,43 @@ namespace Domain.Catalog
             Sku = GuardText(sku, 64, nameof(sku));
             Name = GuardText(name, 500, nameof(name));
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
             BrandId = brandId;
             CategoryId = categoryId;
+            UnitId = unitId;
+
             Price = price >= 0 ? price : throw new ArgumentOutOfRangeException(nameof(price));
             Article = article?.Trim() ?? sku;
             RecommendedRetailPrice = recommendedRetailPrice;
             HasStock = hasStock;
         }
 
-        public void UpdateBasic(string name, string? description, decimal price, decimal? rrp = null, bool? hasStock = null)
+        public void UpdateBasic(
+            string name,
+            string? description,
+            decimal price,
+            decimal? rrp = null,
+            bool? hasStock = null,
+            Guid? unitId = null)
         {
             Name = GuardText(name, 500, nameof(name));
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
             Price = price >= 0 ? price : throw new ArgumentOutOfRangeException(nameof(price));
-            RecommendedRetailPrice = rrp ?? RecommendedRetailPrice;
-            if (hasStock.HasValue) HasStock = hasStock.Value;
+
+            if (rrp.HasValue)
+                RecommendedRetailPrice = rrp.Value;
+
+            if (hasStock.HasValue)
+                HasStock = hasStock.Value;
+
+            if (unitId.HasValue)
+                UnitId = unitId.Value;
         }
 
         public void SetHasStock(bool value) => HasStock = value;
         public void SetRecommendedPrice(decimal? value) => RecommendedRetailPrice = value;
         public void SetArticle(string value) => Article = GuardText(value, 128, nameof(value));
+        public void SetUnit(Guid unitId) => UnitId = unitId;
 
         /// <summary>
         /// Применить значения атрибутов с учётом того, какие атрибуты привязаны к категории.
@@ -74,13 +99,15 @@ namespace Domain.Catalog
             if (category.Id != CategoryId)
                 throw new InvalidOperationException("Product category does not match provided category.");
 
-            var allowedAttrIds = category.Attributes
+            // ВАЖНО: используем коллекцию CategoryAttributes (а не старое Attributes)
+            var allowedAttrIds = category.CategoryAttributes
                 .Select(a => a.AttributeDefinitionId)
                 .ToHashSet();
 
+            // вычищаем значения по атрибутам, которых больше нет в категории
             Attributes.RemoveAll(a => !allowedAttrIds.Contains(a.AttributeDefinitionId));
 
-            foreach (var catAttr in category.Attributes)
+            foreach (var catAttr in category.CategoryAttributes)
             {
                 if (!attributeDefinitions.TryGetValue(catAttr.AttributeDefinitionId, out var def))
                     throw new InvalidOperationException("Attribute definition not found for category attribute.");
@@ -113,7 +140,7 @@ namespace Domain.Catalog
                     continue;
 
                 var trimmed = a.Trim();
-                if (trimmed.Length > 1000) // на всякий пожарный ограничим длину
+                if (trimmed.Length > 1000)
                     trimmed = trimmed[..1000];
 
                 Advantages.Add(trimmed);
@@ -142,9 +169,13 @@ namespace Domain.Catalog
 
         private static string GuardText(string value, int max, string name)
         {
-            if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException($"{name} required");
+            if (string.IsNullOrWhiteSpace(value))
+                throw new ArgumentException($"{name} required");
+
             var trimmed = value.Trim();
-            if (trimmed.Length > max) throw new ArgumentException($"{name} too long");
+            if (trimmed.Length > max)
+                throw new ArgumentException($"{name} too long");
+
             return trimmed;
         }
     }

@@ -5,25 +5,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories.Admin
 {
-    internal sealed class AttributeAdminRepository(StroymagDbContext db) : IAttributeAdminRepository
+    internal sealed class AttributeAdminRepository() : IAttributeAdminRepository
     {
-        public Task AddAsync(AttributeDefinition def, CancellationToken ct) =>
-            db.Set<AttributeDefinition>().AddAsync(def, ct).AsTask();
+        private readonly StroymagDbContext _db;
 
-        public Task<AttributeDefinition?> GetAsync(Guid id, CancellationToken ct) =>
-            db.Set<AttributeDefinition>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
-
-        public async Task<Dictionary<Guid, AttributeDefinition>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct)
+        public AttributeAdminRepository(StroymagDbContext db)
         {
-            var list = await db.Set<AttributeDefinition>()
-                .Where(x => ids.Contains(x.Id) && x.IsActive)
-                .ToListAsync(ct);
-            return list.ToDictionary(x => x.Id, x => x);
+            _db = db;
         }
 
-        public async Task<(IReadOnlyList<AttributeDefinition> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken ct)
+        public async Task<(IReadOnlyList<AttributeDefinition> Items, int Total)> GetPagedAsync(
+            int page,
+            int pageSize,
+            CancellationToken ct)
         {
-            var query = db.Set<AttributeDefinition>().AsNoTracking();
+            var query = _db.Set<AttributeDefinition>().AsNoTracking();
 
             var total = await query.CountAsync(ct);
 
@@ -36,6 +32,28 @@ namespace Infrastructure.Repositories.Admin
             return (items, total);
         }
 
-        public Task<int> SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
+        public async Task<AttributeDefinition?> GetByIdAsync(Guid id, CancellationToken ct)
+            => await _db.Set<AttributeDefinition>()
+                .FirstOrDefaultAsync(a => a.Id == id, ct);
+
+        public async Task<Dictionary<Guid, AttributeDefinition>> GetByIdsAsync(
+            IReadOnlyCollection<Guid> ids,
+            CancellationToken ct)
+        {
+            if (ids.Count == 0)
+                return new Dictionary<Guid, AttributeDefinition>();
+
+            return await _db.Set<AttributeDefinition>()
+                .Where(a => ids.Contains(a.Id))
+                .ToDictionaryAsync(a => a.Id, ct);
+        }
+
+        public async Task AddAsync(AttributeDefinition attribute, CancellationToken ct)
+        {
+            await _db.Set<AttributeDefinition>().AddAsync(attribute, ct);
+        }
+
+        public Task SaveChangesAsync(CancellationToken ct)
+            => _db.SaveChangesAsync(ct);
     }
 }

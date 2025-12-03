@@ -8,15 +8,22 @@ namespace Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<InventoryItem> b)
         {
-            b.ToTable("inventory");
+            b.ToTable("inventory_items", "stroymag");
+
+            // PK = FK на Product
             b.HasKey(x => x.ProductId);
-            //b.Property(x => x.ProductId).HasMaxLength(64);
-            b.Property(x => x.Quantity).HasColumnType("numeric(18,3)").HasDefaultValue(0);
+
+            b.Property(x => x.ProductId)
+                .ValueGeneratedNever();
+
+            b.Property(x => x.Quantity)
+                .HasColumnType("numeric(18,3)")
+                .IsRequired();
 
             b.HasOne<Product>()
-             .WithOne()
-             .HasForeignKey<InventoryItem>(x => x.ProductId)
-             .OnDelete(DeleteBehavior.Cascade);
+                .WithOne()
+                .HasForeignKey<InventoryItem>(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
