@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories.Admin
 {
-    internal sealed class MeasurementUnitAdminRepository()
-        : IMeasurementUnitAdminRepository
+    internal sealed class MeasurementUnitAdminRepository : IMeasurementUnitAdminRepository
     {
         private readonly StroymagDbContext _db;
         public MeasurementUnitAdminRepository(StroymagDbContext db)
@@ -37,5 +36,17 @@ namespace Infrastructure.Repositories.Admin
 
         public Task SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
+
+        public async Task<Dictionary<Guid, MeasurementUnit>> GetByIdsAsync(
+            IReadOnlyCollection<Guid> ids,
+            CancellationToken ct)
+        {
+            if (ids.Count == 0)
+                return new Dictionary<Guid, MeasurementUnit>();
+
+            return await _db.Set<MeasurementUnit>()
+                .Where(u => ids.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, ct);
+        }
     }
 }

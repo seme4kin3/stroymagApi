@@ -8,13 +8,14 @@ namespace Application.Admin.Products.Commands
         string Name,
         Guid BrandId,
         Guid CategoryId,
+        Guid UnitId,
         decimal Price,
-        string? Description = null,
-        string? Article = null,
-        decimal? RecommendedRetailPrice = null,
-        bool HasStock = false,
-        IReadOnlyDictionary<Guid, string?>? AttributeValues = null,
-        IReadOnlyList<string>? Advantages = null,
-        IReadOnlyList<string>? Complectation = null
+        string? Description,
+        string? Article,
+        decimal? RecommendedRetailPrice,
+        bool HasStock,
+        IReadOnlyDictionary<Guid, string?>? AttributeValues,
+        IReadOnlyList<string>? Advantages,
+        IReadOnlyList<string>? Complectation
     ) : IRequest<Guid>;
 }

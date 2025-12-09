@@ -1,9 +1,9 @@
 ﻿using Application.Abstractions.Admin;
-using Application.Admin.MeasurementUnit.Commands;
 using MediatR;
+using Application.Admin.MeasurementUnits.Commands;
 using Domain.Catalog;
 
-namespace Application.Admin.MeasurementUnit.Handlers
+namespace Application.Admin.MeasurementUnits.Handlers
 {
     public sealed class CreateMeasurementUnitHandler
         : IRequestHandler<CreateMeasurementUnitCommand, Guid>

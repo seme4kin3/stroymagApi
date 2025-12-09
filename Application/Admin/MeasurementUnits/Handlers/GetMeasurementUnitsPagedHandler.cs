@@ -1,10 +1,10 @@
 ﻿using Application.Abstractions.Admin;
-using Application.Admin.MeasurementUnit.Queries;
+using Application.Admin.MeasurementUnits.Queries;
 using Application.Common;
 using MediatR;
 
 
-namespace Application.Admin.MeasurementUnit.Handlers
+namespace Application.Admin.MeasurementUnits.Handlers
 {
     public sealed class GetMeasurementUnitsPagedHandler
         : IRequestHandler<GetMeasurementUnitsPagedQuery, PagedResult<MeasurementUnitListItemDto>>

@@ -7,43 +7,58 @@ using MediatR;
 namespace Application.Admin.Categories.Handlers
 {
     public sealed class UpdateCategoryHandler(
-        ICategoryAdminRepository categoryRepo,
-        IAttributeAdminRepository attributeRepo
-    ) : IRequestHandler<UpdateCategoryCommand>
+       ICategoryAdminRepository categoryRepo,
+       IAttributeAdminRepository attributeRepo,
+       IMeasurementUnitAdminRepository unitRepo
+   ) : IRequestHandler<UpdateCategoryCommand>
     {
         public async Task Handle(UpdateCategoryCommand request, CancellationToken ct)
         {
             var category = await categoryRepo.GetWithAttributesAsync(request.Id, ct)
                 ?? throw new KeyNotFoundException("Категория не найдена");
 
-            // 1. Обновляем базовые поля через доменные методы
+            if (request.Attributes is null || request.Attributes.Count == 0)
+                throw new InvalidOperationException("Категория должна иметь хотя бы один атрибут.");
+
+            // 1. Базовые поля
             category.Rename(request.Name);
             category.ChangeParent(request.ParentId);
             category.SetSlug(request.Slug);
             category.SetImage(request.ImageUrl);
 
-            // 2. Загружаем определения всех атрибутов из запроса
+            // 2. Тянем AttributeDefinition
             var incomingAttrIds = request.Attributes
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
                 .ToArray();
 
-            var defs = await attributeRepo.GetByIdsAsync(incomingAttrIds, ct);
-
-            if (defs.Count != incomingAttrIds.Length)
+            var attrDefs = await attributeRepo.GetByIdsAsync(incomingAttrIds, ct);
+            if (attrDefs.Count != incomingAttrIds.Length)
             {
-                var missing = incomingAttrIds.Where(id => !defs.ContainsKey(id));
-                throw new KeyNotFoundException(
+                var missing = incomingAttrIds.Where(id => !attrDefs.ContainsKey(id));
+                throw new InvalidOperationException(
                     $"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
             }
 
-            // 3. Синхронизируем привязки атрибутов
+            // 3. Тянем MeasurementUnit по UnitId
+            var unitIds = request.Attributes
+                .Select(a => a.UnitId)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToArray();
 
-            // 3.1. удаляем те, которых больше нет в новом списке
+            var units = unitIds.Length == 0
+                ? new Dictionary<Guid, MeasurementUnit>()
+                : await unitRepo.GetByIdsAsync(unitIds, ct);
+
+            // 4. Синхронизируем Category.CategoryAttributes
+
+            var existingLinks = category.CategoryAttributes.ToList();
             var incomingSet = incomingAttrIds.ToHashSet();
-            var currentLinks = category.Attributes.ToList(); // чтобы не модифицировать коллекцию в foreach
 
-            foreach (var link in currentLinks)
+            // 4.1. Удаляем те, которых больше нет
+            foreach (var link in existingLinks)
             {
                 if (!incomingSet.Contains(link.AttributeDefinitionId))
                 {
@@ -51,24 +66,30 @@ namespace Application.Admin.Categories.Handlers
                 }
             }
 
-            // 3.2. добавляем/обновляем те, что есть в команде
+            // 4.2. Добавляем/обновляем
             foreach (var item in request.Attributes)
             {
-                var def = defs[item.AttributeDefinitionId];
+                var def = attrDefs[item.AttributeDefinitionId];
 
-                var existingLink = category.Attributes
+                Guid? unitId = item.UnitId;
+
+                var existing = category.CategoryAttributes
                     .FirstOrDefault(a => a.AttributeDefinitionId == def.Id);
 
-                if (existingLink is null)
+                if (existing is null)
                 {
-                    // новая привязка
-                    category.AttachAttribute(def, item.IsRequired, item.SortOrder);
+                    // новая связь
+                    MeasurementUnit? unit = null;
+                    if (unitId.HasValue)
+                        units.TryGetValue(unitId.Value, out unit);
+
+                    category.AttachAttribute(def, unit, item.IsRequired, item.SortOrder);
                 }
                 else
                 {
-                    // обновляем настройки привязки
-                    category.UpdateAttachedAttribute(
-                        attributeDefinitionId: def.Id,
+                    // обновление связи: Update(Guid? unitId, bool? isRequired, int? sortOrder)
+                    existing.Update(
+                        unitId: unitId,
                         isRequired: item.IsRequired,
                         sortOrder: item.SortOrder
                     );

@@ -1,12 +1,12 @@
 ﻿
 namespace Application.Admin.Categories
 {
-    public sealed record CategoryListItemDto(
+    public sealed record CategoryAdminDto(
         Guid Id,
         string Name,
         string? Slug,
         Guid? ParentId,
         string? ImageUrl,
-        IReadOnlyList<CategoryAttributeItemDto> Attributes
+        IReadOnlyList<CategoryAttributeViewDto> Attributes
     );
 }

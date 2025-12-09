@@ -4,26 +4,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories.Admin
 {
-    internal sealed class ProductAdminRepository(StroymagDbContext db) : IProductAdminRepository
+    internal sealed class ProductAdminRepository : IProductAdminRepository
     {
+        private readonly StroymagDbContext _db;
+        public ProductAdminRepository(StroymagDbContext db)
+        {
+            _db = db;
+        }
         public Task AddAsync(Product product, CancellationToken ct) =>
-            db.Set<Product>().AddAsync(product, ct).AsTask();
+           _db.Set<Product>().AddAsync(product, ct).AsTask();
 
         public Task<Product?> GetWithAttributesAsync(Guid id, CancellationToken ct) =>
-            db.Set<Product>()
+            _db.Set<Product>()
               .Include(p => p.Attributes)
               .FirstOrDefaultAsync(p => p.Id == id, ct);
 
-        public void Remove(Product product) => db.Set<Product>().Remove(product);
-
-        public Task<int> SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
-        public async Task<(IReadOnlyList<Product> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken ct)
+        public async Task<(IReadOnlyList<Product> Items, int Total)> GetPagedAsync(
+            int page,
+            int pageSize,
+            CancellationToken ct)
         {
-            var query = db.Set<Product>()
+            var query = _db.Set<Product>()
                 .AsNoTracking()
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
-                .Include(p => p.Attributes); 
+                .Include(p => p.Unit)
+                .Include(p => p.Attributes);
 
             var total = await query.CountAsync(ct);
 
@@ -35,5 +41,11 @@ namespace Infrastructure.Repositories.Admin
 
             return (items, total);
         }
+
+        public void Remove(Product product) =>
+            _db.Set<Product>().Remove(product);
+
+        public Task<int> SaveChangesAsync(CancellationToken ct) =>
+            _db.SaveChangesAsync(ct);
     }
 }

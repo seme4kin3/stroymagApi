@@ -12,12 +12,9 @@ namespace Application.Admin.Categories.Handlers
         {
             var category = await categoryRepo.GetWithAttributesAsync(request.Id, ct);
             if (category is null)
-                return; // идемпотентность
+                return;
 
-            // при желании здесь можно проверить:
-            // - наличие дочерних категорий
-            // - наличие товаров в категории
-            // и кидать InvalidOperationException, если нельзя удалить.
+            // по желанию: проверки на наличие потомков / товаров
 
             categoryRepo.Remove(category);
             await categoryRepo.SaveChangesAsync(ct);

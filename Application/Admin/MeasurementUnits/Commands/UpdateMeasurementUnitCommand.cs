@@ -1,7 +1,7 @@
 ﻿using MediatR;
 
 
-namespace Application.Admin.MeasurementUnit.Commands
+namespace Application.Admin.MeasurementUnits.Commands
 {
     public sealed record UpdateMeasurementUnitCommand(
         Guid Id,

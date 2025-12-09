@@ -27,6 +27,7 @@ namespace Infrastructure
             services.AddScoped<ICategoryAdminRepository, CategoryAdminRepository>();
             services.AddScoped<IProductAdminRepository, ProductAdminRepository>();
             services.AddScoped<IBrandAdminRepository, BrandAdminRepository>();
+            services.AddScoped<IMeasurementUnitAdminRepository, MeasurementUnitAdminRepository>();
 
             return services;
         }

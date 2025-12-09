@@ -13,18 +13,17 @@ namespace Application.Admin.Products.Handlers
     {
         public async Task<Guid> Handle(CreateProductCommand request, CancellationToken ct)
         {
-            // 1. Категория с привязанными атрибутами
+            // 1. категория с CategoryAttributes
             var category = await categoryRepo.GetWithAttributesAsync(request.CategoryId, ct)
                 ?? throw new KeyNotFoundException("Category not found");
 
-            // 2. Определения атрибутов
-            var attachedAttrIds = category.Attributes
+            // 2. определения атрибутов
+            var attachedAttrIds = category.CategoryAttributes
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
                 .ToArray();
 
             var attrDefs = await attributeRepo.GetByIdsAsync(attachedAttrIds, ct);
-
             if (attrDefs.Count != attachedAttrIds.Length)
             {
                 var missing = attachedAttrIds.Where(id => !attrDefs.ContainsKey(id));
@@ -32,12 +31,13 @@ namespace Application.Admin.Products.Handlers
                     $"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 
-            // 3. Создаём доменный Product
+            // 3. создаём доменный Product с UnitId
             var product = new Product(
                 sku: request.Sku,
                 name: request.Name,
                 brandId: request.BrandId,
                 categoryId: request.CategoryId,
+                unitId: request.UnitId,
                 price: request.Price,
                 description: request.Description,
                 article: request.Article,
@@ -45,11 +45,11 @@ namespace Application.Admin.Products.Handlers
                 hasStock: request.HasStock
             );
 
-            // ➕ новые поля в домене
+            // 4. преимущества / комплектация
             product.SetAdvantages(request.Advantages ?? Array.Empty<string>());
             product.SetComplectation(request.Complectation ?? Array.Empty<string>());
 
-            // 4. Атрибуты товара
+            // 5. значения атрибутов
             var values = request.AttributeValues ?? new Dictionary<Guid, string?>();
 
             product.ApplyAttributeValues(
@@ -58,7 +58,6 @@ namespace Application.Admin.Products.Handlers
                 attributeDefinitions: attrDefs
             );
 
-            // 5. Сохранение
             await productRepo.AddAsync(product, ct);
             await productRepo.SaveChangesAsync(ct);
 

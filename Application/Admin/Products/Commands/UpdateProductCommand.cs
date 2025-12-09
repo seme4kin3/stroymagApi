@@ -10,6 +10,7 @@ namespace Application.Admin.Products.Commands
         decimal? RecommendedRetailPrice,
         bool HasStock,
         string? Article,
+        Guid UnitId,
         IReadOnlyDictionary<Guid, string?>? AttributeValues,
         IReadOnlyList<string>? Advantages,
         IReadOnlyList<string>? Complectation

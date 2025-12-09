@@ -4,9 +4,8 @@ namespace Application.Admin.Products
 {
     public sealed record ProductAttributeValueDto(
         Guid AttributeDefinitionId,
-        string Name,
-        string Key,
-        string? Unit,
+        string AttributeName,
+        string AttributeKey,
         AttributeDataType DataType,
         string? StringValue,
         decimal? NumericValue,

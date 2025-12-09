@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories.Admin
 {
-    internal sealed class AttributeAdminRepository() : IAttributeAdminRepository
+    internal sealed class AttributeAdminRepository : IAttributeAdminRepository
     {
         private readonly StroymagDbContext _db;
 

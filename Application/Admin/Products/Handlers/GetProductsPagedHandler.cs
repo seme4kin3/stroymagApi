@@ -7,9 +7,9 @@ using MediatR;
 namespace Application.Admin.Products.Handlers
 {
     public sealed class GetProductsPagedHandler(
-        IProductAdminRepository productRepo,
-        IAttributeAdminRepository attributeRepo
-    ) : IRequestHandler<GetProductsPagedQuery, PagedResult<ProductAdminListItemDto>>
+       IProductAdminRepository productRepo,
+       IAttributeAdminRepository attributeRepo
+   ) : IRequestHandler<GetProductsPagedQuery, PagedResult<ProductAdminListItemDto>>
     {
         public async Task<PagedResult<ProductAdminListItemDto>> Handle(
             GetProductsPagedQuery request,
@@ -20,6 +20,7 @@ namespace Application.Admin.Products.Handlers
 
             var (products, total) = await productRepo.GetPagedAsync(page, pageSize, ct);
 
+            // все AttributeDefinitionId, используемые в продуктах
             var allAttrIds = products
                 .SelectMany(p => p.Attributes)
                 .Select(a => a.AttributeDefinitionId)
@@ -37,9 +38,8 @@ namespace Application.Admin.Products.Handlers
 
                         return new ProductAttributeValueDto(
                             AttributeDefinitionId: a.AttributeDefinitionId,
-                            Name: def?.Name ?? string.Empty,
-                            Key: def?.Key ?? string.Empty,
-                            Unit: def?.Unit,
+                            AttributeName: def?.Name ?? string.Empty,
+                            AttributeKey: def?.Key ?? string.Empty,
                             DataType: def?.DataType ?? default,
                             StringValue: a.StringValue,
                             NumericValue: a.NumericValue,
@@ -58,6 +58,9 @@ namespace Application.Admin.Products.Handlers
                     CategoryId: p.CategoryId,
                     CategoryName: p.Category?.Name ?? string.Empty,
                     CategorySlug: p.Category?.Slug,
+                    UnitId: p.UnitId,
+                    UnitName: p.Unit?.Name ?? string.Empty,
+                    UnitSymbol: p.Unit?.Symbol ?? string.Empty,
                     Price: p.Price,
                     RecommendedRetailPrice: p.RecommendedRetailPrice,
                     HasStock: p.HasStock,

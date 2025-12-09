@@ -12,5 +12,8 @@ namespace Application.Abstractions.Admin
             int page, int pageSize, CancellationToken ct);
 
         Task SaveChangesAsync(CancellationToken ct);
+        Task<Dictionary<Guid, MeasurementUnit>> GetByIdsAsync(
+            IReadOnlyCollection<Guid> ids,
+            CancellationToken ct);
     }
 }

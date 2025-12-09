@@ -1,9 +1,9 @@
 ﻿using Application.Abstractions.Admin;
-using Application.Admin.MeasurementUnit.Commands;
+using Application.Admin.MeasurementUnits.Commands;
 using MediatR;
 
 
-namespace Application.Admin.MeasurementUnit.Handlers
+namespace Application.Admin.MeasurementUnits.Handlers
 {
     public sealed class DeleteMeasurementUnitHandler
         : IRequestHandler<DeleteMeasurementUnitCommand>

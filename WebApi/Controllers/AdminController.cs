@@ -4,9 +4,9 @@ using Application.Admin.Brands.Commands;
 using Application.Admin.Brands.Queries;
 using Application.Admin.Categories.Commands;
 using Application.Admin.Categories.Queries;
-using Application.Admin.MeasurementUnit.Commands;
-using Application.Admin.MeasurementUnit.Queries;
-using Application.Admin.MeasurementUnit;
+using Application.Admin.MeasurementUnits;
+using Application.Admin.MeasurementUnits.Commands;
+using Application.Admin.MeasurementUnits.Queries;
 using Application.Admin.Products.Commands;
 using Application.Common;
 using Infrastructure.Import;
@@ -17,7 +17,7 @@ namespace WebApi.Controllers
 {
     [ApiController]
     [Route("api/admin")]
-    public sealed class AdminController() : ControllerBase
+    public sealed class AdminController : ControllerBase
     {
         private readonly IMediator _mediator;
 
@@ -78,7 +78,7 @@ namespace WebApi.Controllers
 
         [HttpPost("categories")]
         public async Task<IActionResult> CreateCategory(
-            [FromBody] CreateCategoryWithAttributesCommand cmd,
+            [FromBody] CreateCategoryCommand cmd,
             CancellationToken ct)
         {
             var id = await _mediator.Send(cmd, ct);

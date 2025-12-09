@@ -8,6 +8,6 @@ namespace Application.Admin.Categories.Commands
         Guid? ParentId,
         string? Slug,
         string? ImageUrl,
-        IReadOnlyList<CategoryAttributeItem> Attributes
+        IReadOnlyList<CategoryAttributeAdminItemDto> Attributes
     ) : IRequest;
 }

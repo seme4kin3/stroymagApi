@@ -1,8 +1,8 @@
-﻿using Application.Admin.MeasurementUnit.Commands;
+﻿using Application.Admin.MeasurementUnits.Commands;
 using FluentValidation;
 
 
-namespace Application.Admin.MeasurementUnit.Validators
+namespace Application.Admin.MeasurementUnits.Validators
 {
     public sealed class CreateMeasurementUnitValidator : AbstractValidator<CreateMeasurementUnitCommand>
     {

@@ -1,5 +1,5 @@
 ﻿
-namespace Application.Admin.MeasurementUnit
+namespace Application.Admin.MeasurementUnits
 {
     public sealed record MeasurementUnitListItemDto(
         Guid Id,

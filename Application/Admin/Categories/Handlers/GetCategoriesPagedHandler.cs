@@ -1,65 +1,87 @@
 ﻿using Application.Abstractions.Admin;
+using Application.Admin.Categories.Commands;
 using Application.Admin.Categories.Queries;
 using Application.Common;
+using Domain.Catalog;
 using MediatR;
 
 
 namespace Application.Admin.Categories.Handlers
 {
     public sealed class GetCategoriesPagedHandler(
-        ICategoryAdminRepository categoryRepo,
-        IAttributeAdminRepository attributeRepo
-    ) : IRequestHandler<GetCategoriesPagedQuery, PagedResult<CategoryListItemDto>>
+       ICategoryAdminRepository categoryRepo,
+       IAttributeAdminRepository attributeRepo,
+       IMeasurementUnitAdminRepository unitRepo
+   ) : IRequestHandler<GetCategoriesPagedQuery, PagedResult<CategoryAdminDto>>
     {
-        public async Task<PagedResult<CategoryListItemDto>> Handle(
+        public async Task<PagedResult<CategoryAdminDto>> Handle(
             GetCategoriesPagedQuery request,
             CancellationToken ct)
         {
-            var page = request.Page;
-            var pageSize = request.PageSize;
+            var page = request.Page > 0 ? request.Page : 1;
+            var pageSize = request.PageSize > 0 ? request.PageSize : 50;
 
             var (categories, total) = await categoryRepo.GetPagedAsync(page, pageSize, ct);
 
-            // все AttributeDefinitionId, которые используются в вытащенных категориях
+            // собираем id атрибутов и единиц измерения
             var allAttrIds = categories
-                .SelectMany(c => c.Attributes)
+                .SelectMany(c => c.CategoryAttributes)
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
                 .ToArray();
 
-            var defs = await attributeRepo.GetByIdsAsync(allAttrIds, ct);
+            var allUnitIds = categories
+                .SelectMany(c => c.CategoryAttributes)
+                .Select(a => a.UnitId)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToArray();
 
-            var dtoItems = categories.Select(c =>
-            {
-                var attrDtos = c.Attributes
-                    .OrderBy(a => a.SortOrder)
-                    .Select(a =>
-                    {
-                        defs.TryGetValue(a.AttributeDefinitionId, out var def);
+            var attrDefs = await attributeRepo.GetByIdsAsync(allAttrIds, ct);
+            var units = allUnitIds.Length == 0
+                ? new Dictionary<Guid, MeasurementUnit>()
+                : await unitRepo.GetByIdsAsync(allUnitIds, ct);
 
-                        return new CategoryAttributeItemDto(
-                            AttributeDefinitionId: a.AttributeDefinitionId,
-                            Name: def?.Name ?? string.Empty,
-                            Key: def?.Key ?? string.Empty,
-                            Unit: def?.Unit,
-                            IsActive: def?.IsActive ?? false,
-                            IsRequired: a.IsRequired,
-                            SortOrder: a.SortOrder
-                        );
-                    })
-                    .ToList();
+            var dtoItems = categories
+                .Select(c =>
+                {
+                    var attrs = c.CategoryAttributes
+                        .OrderBy(a => a.SortOrder)
+                        .Select(link =>
+                        {
+                            attrDefs.TryGetValue(link.AttributeDefinitionId, out var def);
 
-                return new CategoryListItemDto(
-                    Id: c.Id,
-                    Name: c.Name,
-                    Slug: c.Slug,
-                    ParentId: c.ParentId,
-                    ImageUrl: c.ImageUrl,
-                    Attributes: attrDtos
-                );
-            }).ToList();
+                            MeasurementUnit? unit = null;
+                            if (link.UnitId.HasValue)
+                                units.TryGetValue(link.UnitId.Value, out unit);
 
-            return new PagedResult<CategoryListItemDto>(dtoItems, total, page, pageSize);
+                            return new CategoryAttributeViewDto(
+                                AttributeDefinitionId: link.AttributeDefinitionId,
+                                AttributeName: def?.Name ?? string.Empty,
+                                AttributeKey: def?.Key ?? string.Empty,
+                                DataType: def?.DataType ?? default,
+                                UnitId: link.UnitId,
+                                UnitName: unit?.Name,
+                                UnitSymbol: unit?.Symbol,
+                                IsRequired: link.IsRequired,
+                                SortOrder: link.SortOrder
+                            );
+                        })
+                        .ToList();
+
+                    return new CategoryAdminDto(
+                        Id: c.Id,
+                        Name: c.Name,
+                        Slug: c.Slug,
+                        ParentId: c.ParentId,
+                        ImageUrl: c.ImageUrl,
+                        Attributes: attrs
+                    );
+                })
+                .ToList();
+
+            return new PagedResult<CategoryAdminDto>(dtoItems, total, page, pageSize);
         }
     }
 }

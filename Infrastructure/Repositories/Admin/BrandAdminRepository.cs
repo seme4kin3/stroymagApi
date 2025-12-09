@@ -5,13 +5,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories.Admin
 {
-    internal sealed class BrandAdminRepository(StroymagDbContext db) : IBrandAdminRepository
+    internal sealed class BrandAdminRepository : IBrandAdminRepository
     {
+        private readonly StroymagDbContext _db;
+        public BrandAdminRepository(StroymagDbContext db)
+        {
+            _db = db;
+        }
         public Task AddAsync(Brand brand, CancellationToken ct) =>
-            db.Set<Brand>().AddAsync(brand, ct).AsTask();
+            _db.Set<Brand>().AddAsync(brand, ct).AsTask();
 
         public Task<Brand?> GetAsync(Guid id, CancellationToken ct) =>
-            db.Set<Brand>()
+            _db.Set<Brand>()
               .FirstOrDefaultAsync(b => b.Id == id, ct);
 
         public async Task<(IReadOnlyList<Brand> Items, int Total)> GetPagedAsync(
@@ -19,7 +24,7 @@ namespace Infrastructure.Repositories.Admin
             int pageSize,
             CancellationToken ct)
         {
-            var query = db.Set<Brand>().AsNoTracking();
+            var query = _db.Set<Brand>().AsNoTracking();
 
             var total = await query.CountAsync(ct);
 
@@ -32,9 +37,9 @@ namespace Infrastructure.Repositories.Admin
             return (items, total);
         }
 
-        public void Remove(Brand brand) => db.Set<Brand>().Remove(brand);
+        public void Remove(Brand brand) => _db.Set<Brand>().Remove(brand);
 
         public Task<int> SaveChangesAsync(CancellationToken ct) =>
-            db.SaveChangesAsync(ct);
+            _db.SaveChangesAsync(ct);
     }
 }

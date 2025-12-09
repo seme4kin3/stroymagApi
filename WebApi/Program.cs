@@ -32,7 +32,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Импорт из Excel 
-builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
+//builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 
 var app = builder.Build();
 
