@@ -85,6 +85,13 @@ namespace WebApi.Controllers
             return Created(string.Empty, new { id });
         }
 
+        [HttpGet("categories/{id:guid}")]
+        public async Task<IActionResult> GetCategoryAdminById(Guid id, CancellationToken ct)
+        {
+            var dto = await _mediator.Send(new GetCategoryAdminByIdQuery(id), ct);
+            return dto is null ? NotFound() : Ok(dto);
+        }
+
         // Обновление категории + полный пересбор атрибутов
         [HttpPut("categories/{id:guid}")]
         public async Task<IActionResult> UpdateCategory(

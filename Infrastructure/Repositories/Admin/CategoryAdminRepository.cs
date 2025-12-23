@@ -41,5 +41,13 @@ namespace Infrastructure.Repositories.Admin
 
             return (items, total);
         }
+
+        public async Task<IReadOnlyList<Category>> GetFlatWithAttributesAsync(CancellationToken ct)
+        {
+            return await _db.Set<Category>()
+                .AsNoTracking()
+                .Include(c => c.CategoryAttributes)
+                .ToListAsync(ct);
+        }
     }
 }

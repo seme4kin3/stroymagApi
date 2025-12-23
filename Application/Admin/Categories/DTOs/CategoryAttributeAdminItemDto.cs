@@ -1,4 +1,4 @@
-﻿namespace Application.Admin.Categories
+﻿namespace Application.Admin.Categories.DTOs
 {
     public sealed record CategoryAttributeAdminItemDto(
         Guid AttributeDefinitionId,

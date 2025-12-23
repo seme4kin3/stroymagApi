@@ -1,7 +1,6 @@
-﻿
-using Domain.Catalog;
+﻿using Domain.Catalog;
 
-namespace Application.Admin.Categories
+namespace Application.Admin.Categories.DTOs
 {
     public sealed record CategoryAttributeViewDto(
         Guid AttributeDefinitionId,

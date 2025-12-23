@@ -16,5 +16,6 @@ namespace Application.Abstractions.Admin
         void Remove(Category category);
 
         Task<int> SaveChangesAsync(CancellationToken ct);
+        Task<IReadOnlyList<Category>> GetFlatWithAttributesAsync(CancellationToken ct);
     }
 }

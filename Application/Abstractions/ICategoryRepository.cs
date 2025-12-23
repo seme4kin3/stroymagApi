@@ -1,4 +1,5 @@
 ﻿using Application.Categories;
+using Domain.Catalog;
 
 namespace Application.Abstractions
 {
