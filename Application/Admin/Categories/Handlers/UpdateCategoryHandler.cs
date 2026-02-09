@@ -20,13 +20,12 @@ namespace Application.Admin.Categories.Handlers
             if (request.Attributes is null || request.Attributes.Count == 0)
                 throw new InvalidOperationException("Категория должна иметь хотя бы один атрибут.");
 
-            // 1. Базовые поля
+            // 1) базовые поля
             category.Rename(request.Name);
             category.ChangeParent(request.ParentId);
             category.SetSlug(request.Slug);
-            category.SetImage(request.ImageUrl);
 
-            // 2. Тянем AttributeDefinition
+            // 2) AttributeDefinition
             var incomingAttrIds = request.Attributes
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
@@ -36,11 +35,10 @@ namespace Application.Admin.Categories.Handlers
             if (attrDefs.Count != incomingAttrIds.Length)
             {
                 var missing = incomingAttrIds.Where(id => !attrDefs.ContainsKey(id));
-                throw new InvalidOperationException(
-                    $"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
+                throw new InvalidOperationException($"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
             }
 
-            // 3. Тянем MeasurementUnit по UnitId
+            // 3) Units
             var unitIds = request.Attributes
                 .Select(a => a.UnitId)
                 .Where(id => id.HasValue)
@@ -52,47 +50,36 @@ namespace Application.Admin.Categories.Handlers
                 ? new Dictionary<Guid, MeasurementUnit>()
                 : await unitRepo.GetByIdsAsync(unitIds, ct);
 
-            // 4. Синхронизируем Category.CategoryAttributes
-
+            // 4) синхронизация атрибутов
             var existingLinks = category.CategoryAttributes.ToList();
             var incomingSet = incomingAttrIds.ToHashSet();
 
-            // 4.1. Удаляем те, которых больше нет
+            // 4.1 удалить лишние
             foreach (var link in existingLinks)
             {
                 if (!incomingSet.Contains(link.AttributeDefinitionId))
-                {
                     category.DetachAttribute(link.AttributeDefinitionId);
-                }
             }
 
-            // 4.2. Добавляем/обновляем
+            // 4.2 добавить/обновить
             foreach (var item in request.Attributes)
             {
                 var def = attrDefs[item.AttributeDefinitionId];
-
-                Guid? unitId = item.UnitId;
 
                 var existing = category.CategoryAttributes
                     .FirstOrDefault(a => a.AttributeDefinitionId == def.Id);
 
                 if (existing is null)
                 {
-                    // новая связь
                     MeasurementUnit? unit = null;
-                    if (unitId.HasValue)
-                        units.TryGetValue(unitId.Value, out unit);
+                    if (item.UnitId.HasValue)
+                        units.TryGetValue(item.UnitId.Value, out unit);
 
                     category.AttachAttribute(def, unit, item.IsRequired, item.SortOrder);
                 }
                 else
                 {
-                    // обновление связи: Update(Guid? unitId, bool? isRequired, int? sortOrder)
-                    existing.Update(
-                        unitId: unitId,
-                        isRequired: item.IsRequired,
-                        sortOrder: item.SortOrder
-                    );
+                    existing.Update(item.UnitId, item.IsRequired, item.SortOrder);
                 }
             }
 

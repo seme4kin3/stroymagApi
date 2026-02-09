@@ -16,5 +16,6 @@ namespace Application.Abstractions.Admin
         void Remove(Product product);
 
         Task<int> SaveChangesAsync(CancellationToken ct);
+        Task<Product?> GetDetailsAsync(Guid id, CancellationToken ct);
     }
 }

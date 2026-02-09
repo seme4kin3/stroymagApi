@@ -1,8 +1,8 @@
 using Infrastructure;
-using Infrastructure.Import;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Filters;
 using Application;
+using Supabase;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +24,19 @@ builder.Services.AddCors(options =>
 builder.Services
     .AddApplication()                       
     .AddInfrastructure(builder.Configuration);
+
+builder.Services.AddSingleton(provider =>
+{
+    var url = builder.Configuration["Supabase:Url"]!;
+    var key = builder.Configuration["Supabase:ServiceRoleKey"]!;
+
+    var options = new SupabaseOptions
+    {
+        AutoConnectRealtime = false
+    };
+
+    return new Client(url, key, options);
+});
 
 builder.Services.AddControllers().AddJsonOptions(_ => { });
 //builder.Services.AddFluentValidationAutoValidation();

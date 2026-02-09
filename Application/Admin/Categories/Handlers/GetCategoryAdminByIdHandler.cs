@@ -8,29 +8,28 @@ using MediatR;
 namespace Application.Admin.Categories.Handlers
 {
     public sealed class GetCategoryAdminByIdHandler(
-        ICategoryAdminRepository categories,
-        IAttributeAdminRepository attributes,
-        IMeasurementUnitAdminRepository units
-    ) : IRequestHandler<GetCategoryAdminByIdQuery, CategoryAdminDetailsDto?>
+       ICategoryAdminRepository categories,
+       IAttributeAdminRepository attributes,
+       IMeasurementUnitAdminRepository units,
+       IStorageUploader storageUploader
+   ) : IRequestHandler<GetCategoryAdminByIdQuery, CategoryAdminDetailsDto?>
     {
-        public async Task<CategoryAdminDetailsDto> Handle(
-           GetCategoryAdminByIdQuery request,
-           CancellationToken ct)
+        public async Task<CategoryAdminDetailsDto?> Handle(GetCategoryAdminByIdQuery request, CancellationToken ct)
         {
             // 1) Забираем все категории плоско (с CategoryAttributes)
             var flat = await categories.GetFlatWithAttributesAsync(ct);
 
-            var target = flat.FirstOrDefault(c => c.Id == request.Id);
-            if (target is null)
+            // Быстрый доступ по Id
+            var byId = flat.ToDictionary(x => x.Id);
+
+            if (!byId.TryGetValue(request.Id, out var target))
                 return null;
 
             // 2) Родитель (Id + Name)
             CategoryParentDto? parentDto = null;
-            if (target.ParentId.HasValue)
+            if (target.ParentId.HasValue && byId.TryGetValue(target.ParentId.Value, out var parent))
             {
-                var parent = flat.FirstOrDefault(x => x.Id == target.ParentId.Value);
-                if (parent is not null)
-                    parentDto = new CategoryParentDto(parent.Id, parent.Name);
+                parentDto = new CategoryParentDto(parent.Id, parent.Name);
             }
 
             // 3) Атрибуты текущей категории (прямые)
@@ -38,53 +37,42 @@ namespace Application.Admin.Categories.Handlers
                 .OrderBy(a => a.SortOrder)
                 .ToList();
 
-            // 4) Собираем атрибуты всех предков
-            // key = AttributeDefinitionId
-            // value = CategoryAttribute (настройки ближайшего предка)
+            // 4) Собираем атрибуты всех предков (ближайший предок имеет приоритет)
             var inheritedByAttrId = new Dictionary<Guid, CategoryAttribute>();
 
             var currentParentId = target.ParentId;
-            var guard = 0; // защита от циклов
+            var guard = 0;
 
             while (currentParentId.HasValue && guard++ < 256)
             {
-                var parent = flat.FirstOrDefault(x => x.Id == currentParentId.Value);
-                if (parent is null)
+                if (!byId.TryGetValue(currentParentId.Value, out var curParent))
                     break;
 
-                foreach (var link in parent.CategoryAttributes.OrderBy(a => a.SortOrder))
+                foreach (var link in curParent.CategoryAttributes.OrderBy(a => a.SortOrder))
                 {
-                    // добавляем только если атрибут ещё не встречался
-                    // (ближайший предок имеет приоритет)
                     if (!inheritedByAttrId.ContainsKey(link.AttributeDefinitionId))
-                    {
                         inheritedByAttrId.Add(link.AttributeDefinitionId, link);
-                    }
                 }
 
-                currentParentId = parent.ParentId;
+                currentParentId = curParent.ParentId;
             }
 
             var ancestorAttrIds = inheritedByAttrId.Keys.ToHashSet();
 
-            // 5) Если атрибут есть и у предков, и у текущей категории —
-            // он остаётся inherited, но с настройками текущей категории
+            // 5) Если атрибут есть у предков и у текущей категории —
+            // оставляем его в inherited, но с настройками текущей категории
             foreach (var link in currentLinks)
             {
                 if (ancestorAttrIds.Contains(link.AttributeDefinitionId))
-                {
                     inheritedByAttrId[link.AttributeDefinitionId] = link;
-                }
             }
 
-            // 6) Делим:
-            // Own = только те, которых нет ни у одного предка
+            // 6) Делим own/inherited
             var ownLinks = currentLinks
                 .Where(l => !ancestorAttrIds.Contains(l.AttributeDefinitionId))
                 .OrderBy(l => l.SortOrder)
                 .ToList();
 
-            // Inherited = все, что пришло от предков
             var inheritedLinks = inheritedByAttrId.Values
                 .OrderBy(l => l.SortOrder)
                 .ToList();
@@ -96,7 +84,9 @@ namespace Application.Admin.Categories.Handlers
                 .Distinct()
                 .ToArray();
 
-            var defs = await attributes.GetByIdsAsync(allAttrIds, ct);
+            var defs = allAttrIds.Length == 0
+                ? new Dictionary<Guid, AttributeDefinition>()
+                : await attributes.GetByIdsAsync(allAttrIds, ct);
 
             var unitIds = ownLinks
                 .Concat(inheritedLinks)
@@ -110,41 +100,46 @@ namespace Application.Admin.Categories.Handlers
                 ? new Dictionary<Guid, MeasurementUnit>()
                 : await units.GetByIdsAsync(unitIds, ct);
 
-            // 8) Маппинг в DTO
+            // 8) Маппинг
             IReadOnlyList<CategoryAttributeResolvedDto> Map(IEnumerable<CategoryAttribute> links) =>
-                links
-                    .Select(link =>
-                    {
-                        defs.TryGetValue(link.AttributeDefinitionId, out var def);
+                links.Select(link =>
+                {
+                    defs.TryGetValue(link.AttributeDefinitionId, out var def);
 
-                        MeasurementUnit? unit = null;
-                        if (link.UnitId.HasValue)
-                            unitDict.TryGetValue(link.UnitId.Value, out unit);
+                    MeasurementUnit? unit = null;
+                    if (link.UnitId.HasValue)
+                        unitDict.TryGetValue(link.UnitId.Value, out unit);
 
-                        return new CategoryAttributeResolvedDto(
-                            AttributeDefinitionId: link.AttributeDefinitionId,
-                            AttributeName: def?.Name ?? string.Empty,
-                            AttributeKey: def?.Key ?? string.Empty,
-                            DataType: def?.DataType ?? default,
-                            UnitId: link.UnitId,
-                            UnitName: unit?.Name,
-                            UnitSymbol: unit?.Symbol,
-                            IsRequired: link.IsRequired,
-                            SortOrder: link.SortOrder
-                        );
-                    })
-                    .ToList();
+                    return new CategoryAttributeResolvedDto(
+                        AttributeDefinitionId: link.AttributeDefinitionId,
+                        AttributeName: def?.Name ?? string.Empty,
+                        AttributeKey: def?.Key ?? string.Empty,
+                        DataType: def?.DataType ?? default,
+                        UnitId: link.UnitId,
+                        UnitName: unit?.Name,
+                        UnitSymbol: unit?.Symbol,
+                        IsRequired: link.IsRequired,
+                        SortOrder: link.SortOrder
+                    );
+                }).ToList();
 
             var ownDtos = Map(ownLinks);
             var inheritedDtos = Map(inheritedLinks);
 
-            // 9) Финальный DTO
+            // 9) ImageUrl (строим URL на read-side)
+            string? imageUrl = null;
+            if (!string.IsNullOrWhiteSpace(target.ImageBucket) &&
+                !string.IsNullOrWhiteSpace(target.ImageObjectKey))
+            {
+                imageUrl = storageUploader.GetPublicUrl(target.ImageBucket!, target.ImageObjectKey!);
+            }
+
             return new CategoryAdminDetailsDto(
                 Id: target.Id,
                 Name: target.Name,
                 Slug: target.Slug,
                 ParentId: target.ParentId,
-                ImageUrl: target.ImageUrl,
+                ImageUrl: imageUrl,              
                 Parent: parentDto,
                 OwnAttributes: ownDtos,
                 InheritedAttributes: inheritedDtos

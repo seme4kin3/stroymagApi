@@ -21,10 +21,9 @@ namespace Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Name = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
                     Key = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     DataType = table.Column<int>(type: "integer", nullable: false),
-                    Unit = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -38,7 +37,7 @@ namespace Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -53,8 +52,9 @@ namespace Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     ParentId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    ImageUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                    Slug = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    ImageBucket = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ImageObjectKey = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -84,68 +84,19 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "category_attributes",
+                name: "measurement_units",
                 schema: "stroymag",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
-                    AttributeDefinitionId = table.Column<Guid>(type: "uuid", nullable: false),
-                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Symbol = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    Code = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_category_attributes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_category_attributes_attribute_definitions_AttributeDefiniti~",
-                        column: x => x.AttributeDefinitionId,
-                        principalSchema: "stroymag",
-                        principalTable: "attribute_definitions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_category_attributes_categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalSchema: "stroymag",
-                        principalTable: "categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "products",
-                schema: "stroymag",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", maxLength: 64, nullable: false),
-                    Sku = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    Article = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    Description = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    BrandId = table.Column<Guid>(type: "uuid", nullable: false),
-                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Rrp = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
-                    Has_Stock = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_products", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_products_brands_BrandId",
-                        column: x => x.BrandId,
-                        principalSchema: "stroymag",
-                        principalTable: "brands",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_products_categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalSchema: "stroymag",
-                        principalTable: "categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                    table.PrimaryKey("PK_measurement_units", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -196,18 +147,126 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "inventory",
+                name: "category_attributes",
+                schema: "stroymag",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    AttributeDefinitionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UnitId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsRequired = table.Column<bool>(type: "boolean", nullable: false),
+                    SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_category_attributes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_category_attributes_attribute_definitions_AttributeDefiniti~",
+                        column: x => x.AttributeDefinitionId,
+                        principalSchema: "stroymag",
+                        principalTable: "attribute_definitions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_category_attributes_categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalSchema: "stroymag",
+                        principalTable: "categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_category_attributes_measurement_units_UnitId",
+                        column: x => x.UnitId,
+                        principalSchema: "stroymag",
+                        principalTable: "measurement_units",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "products",
+                schema: "stroymag",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Sku = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
+                    Article = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Description = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                    BrandId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UnitId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Price = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    RecommendedRetailPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: true),
+                    HasStock = table.Column<bool>(type: "boolean", nullable: false),
+                    advantages = table.Column<string>(type: "jsonb", nullable: true),
+                    complectation = table.Column<string>(type: "jsonb", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_products", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_products_brands_BrandId",
+                        column: x => x.BrandId,
+                        principalSchema: "stroymag",
+                        principalTable: "brands",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_products_categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalSchema: "stroymag",
+                        principalTable: "categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_products_measurement_units_UnitId",
+                        column: x => x.UnitId,
+                        principalSchema: "stroymag",
+                        principalTable: "measurement_units",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "order_lines",
+                schema: "stroymag",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductId = table.Column<Guid>(type: "uuid", maxLength: 64, nullable: false),
+                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Qty = table.Column<decimal>(type: "numeric(18,3)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_order_lines", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_order_lines_orders_OrderId",
+                        column: x => x.OrderId,
+                        principalSchema: "stroymag",
+                        principalTable: "orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "inventory_items",
                 schema: "stroymag",
                 columns: table => new
                 {
                     ProductId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Quantity = table.Column<decimal>(type: "numeric(18,3)", nullable: false, defaultValue: 0m)
+                    Quantity = table.Column<decimal>(type: "numeric(18,3)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_inventory", x => x.ProductId);
+                    table.PrimaryKey("PK_inventory_items", x => x.ProductId);
                     table.ForeignKey(
-                        name: "FK_inventory_products_ProductId",
+                        name: "FK_inventory_items_products_ProductId",
                         column: x => x.ProductId,
                         principalSchema: "stroymag",
                         principalTable: "products",
@@ -252,11 +311,11 @@ namespace Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProductId = table.Column<Guid>(type: "uuid", maxLength: 64, nullable: false),
-                    Url = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
-                    StoragePath = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    ProductId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Url = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    StoragePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Alt = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    IsPrimary = table.Column<bool>(type: "boolean", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -268,31 +327,6 @@ namespace Infrastructure.Migrations
                         column: x => x.ProductId,
                         principalSchema: "stroymag",
                         principalTable: "products",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "order_lines",
-                schema: "stroymag",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    OrderId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ProductId = table.Column<Guid>(type: "uuid", maxLength: 64, nullable: false),
-                    Name = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Qty = table.Column<decimal>(type: "numeric(18,3)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_order_lines", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_order_lines_orders_OrderId",
-                        column: x => x.OrderId,
-                        principalSchema: "stroymag",
-                        principalTable: "orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -312,11 +346,10 @@ namespace Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_categories_ParentId_Name",
+                name: "IX_categories_ParentId",
                 schema: "stroymag",
                 table: "categories",
-                columns: new[] { "ParentId", "Name" },
-                unique: true);
+                column: "ParentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_categories_Slug",
@@ -338,11 +371,23 @@ namespace Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_category_attributes_UnitId",
+                schema: "stroymag",
+                table: "category_attributes",
+                column: "UnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_customers_Email",
                 schema: "stroymag",
                 table: "customers",
                 column: "Email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_measurement_units_Symbol",
+                schema: "stroymag",
+                table: "measurement_units",
+                column: "Symbol");
 
             migrationBuilder.CreateIndex(
                 name: "IX_order_lines_OrderId",
@@ -377,22 +422,10 @@ namespace Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_product_images_ProductId_IsPrimary",
-                schema: "stroymag",
-                table: "product_images",
-                columns: new[] { "ProductId", "IsPrimary" });
-
-            migrationBuilder.CreateIndex(
                 name: "IX_product_images_ProductId_SortOrder",
                 schema: "stroymag",
                 table: "product_images",
                 columns: new[] { "ProductId", "SortOrder" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_products_Article",
-                schema: "stroymag",
-                table: "products",
-                column: "Article");
 
             migrationBuilder.CreateIndex(
                 name: "IX_products_BrandId",
@@ -407,17 +440,10 @@ namespace Infrastructure.Migrations
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_products_Has_Stock",
+                name: "IX_products_UnitId",
                 schema: "stroymag",
                 table: "products",
-                column: "Has_Stock");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_products_Sku",
-                schema: "stroymag",
-                table: "products",
-                column: "Sku",
-                unique: true);
+                column: "UnitId");
         }
 
         /// <inheritdoc />
@@ -432,7 +458,7 @@ namespace Infrastructure.Migrations
                 schema: "stroymag");
 
             migrationBuilder.DropTable(
-                name: "inventory",
+                name: "inventory_items",
                 schema: "stroymag");
 
             migrationBuilder.DropTable(
@@ -469,6 +495,10 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "categories",
+                schema: "stroymag");
+
+            migrationBuilder.DropTable(
+                name: "measurement_units",
                 schema: "stroymag");
         }
     }

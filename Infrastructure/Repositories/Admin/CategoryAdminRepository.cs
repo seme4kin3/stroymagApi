@@ -49,5 +49,9 @@ namespace Infrastructure.Repositories.Admin
                 .Include(c => c.CategoryAttributes)
                 .ToListAsync(ct);
         }
+
+        public Task<Category?> GetByIdAsync(Guid id, CancellationToken ct) =>
+             _db.Set<Category>()
+              .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 }

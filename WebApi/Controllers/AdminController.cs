@@ -3,15 +3,19 @@ using Application.Admin.Attributes.Queries;
 using Application.Admin.Brands.Commands;
 using Application.Admin.Brands.Queries;
 using Application.Admin.Categories.Commands;
+using Application.Admin.Categories.DTOs;
 using Application.Admin.Categories.Queries;
 using Application.Admin.MeasurementUnits;
 using Application.Admin.MeasurementUnits.Commands;
 using Application.Admin.MeasurementUnits.Queries;
+using Application.Admin.Products;
 using Application.Admin.Products.Commands;
+using Application.Admin.Products.Queries;
 using Application.Common;
 using Infrastructure.Import;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace WebApi.Controllers
 {
@@ -77,11 +81,34 @@ namespace WebApi.Controllers
         }
 
         [HttpPost("categories")]
-        public async Task<IActionResult> CreateCategory(
-            [FromBody] CreateCategoryCommand cmd,
-            CancellationToken ct)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateCategory([FromForm] CreateCategoryForm form, CancellationToken ct)
         {
-            var id = await _mediator.Send(cmd, ct);
+            var attrs = JsonSerializer.Deserialize<List<CategoryAttributeAdminItemDto>>(
+                form.AttributesJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            ) ?? new();
+
+            UploadFileDto? imageDto = null;
+
+            if (form.Image is not null && form.Image.Length > 0)
+            {
+                imageDto = new UploadFileDto(
+                    Content: form.Image.OpenReadStream(),
+                    ContentType: form.Image.ContentType,
+                    ContentLength: form.Image.Length,
+                    FileName: form.Image.FileName
+                );
+            }
+
+            var id = await _mediator.Send(new CreateCategoryCommand(
+                Name: form.Name,
+                ParentId: form.ParentId,
+                Slug: form.Slug,
+                Attributes: attrs,
+                Image: imageDto
+            ), ct);
+
             return Created(string.Empty, new { id });
         }
 
@@ -112,13 +139,44 @@ namespace WebApi.Controllers
             return NoContent();
         }
 
+        [HttpPost("categories/{id:guid}/image")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadCategoryImage(
+            Guid id,
+            IFormFile file,
+            CancellationToken ct)
+        {
+            if (file is null || file.Length == 0)
+                return BadRequest("Файл не передан");
+
+            await using var stream = file.OpenReadStream();
+
+            await _mediator.Send(new UploadCategoryImageCommand(
+                CategoryId: id,
+                Content: stream,
+                ContentType: file.ContentType,
+                ContentLength: file.Length,
+                FileName: file.FileName
+            ), ct);
+
+            return NoContent();
+        }
+
+
         // 4) Создать товар (и применить значения атрибутов категории)
 
         [HttpGet("products")]
         public async Task<IActionResult> GetPagedProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetCategoriesPagedQuery(page, pageSize), ct);
+            var result = await _mediator.Send(new GetProductsPagedQuery(page, pageSize), ct);
             return Ok(result);
+        }
+
+        [HttpGet("products/{id:guid}")]
+        public async Task<ActionResult<ProductAdminListItemDto>> GetById(Guid id, CancellationToken ct)
+        {
+            var dto = await _mediator.Send(new GetProductAdminByIdQuery(id), ct);
+            return dto is null ? NotFound() : Ok(dto);
         }
 
         [HttpPost("products")]

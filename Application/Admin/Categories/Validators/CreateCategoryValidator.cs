@@ -9,7 +9,6 @@ namespace Application.Admin.Categories.Validators
         {
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Slug).MaximumLength(200).When(x => x.Slug != null);
-            RuleFor(x => x.ImageUrl).MaximumLength(500).When(x => x.ImageUrl != null);
         }
     }
 }

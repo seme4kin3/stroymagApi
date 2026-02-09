@@ -77,7 +77,11 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("ImageBucket")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ImageObjectKey")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 

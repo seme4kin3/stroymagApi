@@ -32,8 +32,7 @@ namespace Infrastructure.Repositories
                     r.Id,
                     r.Name,
                     r.Slug,
-                    dict.TryGetValue(r.Id, out var cnt) ? cnt : 0,
-                    r.ImageUrl
+                    dict.TryGetValue(r.Id, out var cnt) ? cnt : 0
                 ))
                 .ToList()
                 .AsReadOnly();

@@ -5,7 +5,6 @@ namespace Application.Categories
         Guid Id,
         string Name,
         string Slug,
-        int ChildrenCount,
-        string? ImageUrl
+        int ChildrenCount
     );
 }

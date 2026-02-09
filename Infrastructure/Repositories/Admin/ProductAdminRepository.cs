@@ -47,5 +47,14 @@ namespace Infrastructure.Repositories.Admin
 
         public Task<int> SaveChangesAsync(CancellationToken ct) =>
             _db.SaveChangesAsync(ct);
+
+        public Task<Product?> GetDetailsAsync(Guid id, CancellationToken ct) =>
+            _db.Set<Product>()
+              .AsNoTracking()
+              .Include(p => p.Brand)
+              .Include(p => p.Category)
+              .Include(p => p.Unit)
+              .Include(p => p.Attributes)
+              .FirstOrDefaultAsync(p => p.Id == id, ct);
     }
 }

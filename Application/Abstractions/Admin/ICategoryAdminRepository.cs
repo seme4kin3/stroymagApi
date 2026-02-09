@@ -4,6 +4,7 @@ namespace Application.Abstractions.Admin
 {
     public interface ICategoryAdminRepository
     {
+        Task<Category?> GetByIdAsync(Guid id, CancellationToken ct);
         Task AddAsync(Category category, CancellationToken ct);
 
         Task<Category?> GetWithAttributesAsync(Guid id, CancellationToken ct);

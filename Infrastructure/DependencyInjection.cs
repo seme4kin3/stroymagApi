@@ -2,9 +2,11 @@
 using Application.Abstractions.Admin;
 using Infrastructure.Repositories;
 using Infrastructure.Repositories.Admin;
+using Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
 
 namespace Infrastructure
 {
@@ -12,12 +14,17 @@ namespace Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration cfg)
         {
-            var cs = cfg.GetConnectionString("Database")!;
+            var cs = cfg.GetConnectionString("Database");
             services.AddDbContext<StroymagDbContext>(opt =>
                 opt.UseNpgsql(cs, npg =>
                 {
                     npg.MigrationsHistoryTable("__ef_migrations_history", "stroymag");
                 }));
+
+
+            services.AddOptions<SupabaseOptions>()
+                .Bind(cfg.GetSection("Supabase"))
+                .ValidateOnStart();
 
             services.AddScoped<IProductReadRepository, ProductReadRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
@@ -28,6 +35,8 @@ namespace Infrastructure
             services.AddScoped<IProductAdminRepository, ProductAdminRepository>();
             services.AddScoped<IBrandAdminRepository, BrandAdminRepository>();
             services.AddScoped<IMeasurementUnitAdminRepository, MeasurementUnitAdminRepository>();
+
+            services.AddScoped<IStorageUploader, SupabaseStorageUploader>();
 
             return services;
         }

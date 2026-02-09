@@ -8,7 +8,8 @@ namespace Application.Admin.Categories.Commands
         string Name,
         Guid? ParentId,
         string? Slug,
-        string? ImageUrl,
-        IReadOnlyList<CategoryAttributeAdminItemDto> Attributes
+        IReadOnlyList<CategoryAttributeAdminItemDto> Attributes,
+        UploadFileDto? Image,      
+        bool RemoveImage = false   
     ) : IRequest;
 }

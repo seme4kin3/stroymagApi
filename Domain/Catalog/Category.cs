@@ -11,7 +11,11 @@ namespace Domain.Catalog
         public Guid? ParentId { get; private set; }
 
         public string? Slug { get; private set; }
-        public string? ImageUrl { get; private set; }
+
+        // ✅ Храним только идентификатор объекта в storage
+        public string? ImageBucket { get; private set; }
+        public string? ImageObjectKey { get; private set; }
+
         public virtual Category? Parent { get; private set; }
         public virtual ICollection<Category> Children { get; private set; } = new List<Category>();
 
@@ -20,12 +24,12 @@ namespace Domain.Catalog
 
         private Category() { }
 
-        public Category(string name, Guid? parentId = null, string? slug = null, string? imageUrl = null)
+        // ❌ imageUrl убираем из конструктора — картинка привязывается отдельным use-case (finalize)
+        public Category(string name, Guid? parentId = null, string? slug = null)
         {
             SetName(name);
             ParentId = parentId;
             SetSlug(slug ?? GenerateSlugFrom(name));
-            SetImage(imageUrl);
         }
 
         public void Rename(string name)
@@ -45,23 +49,40 @@ namespace Domain.Catalog
                 Slug = null;
                 return;
             }
+
             var trimmed = slug.Trim().ToLowerInvariant();
             if (trimmed.Length > 200)
                 trimmed = trimmed[..200];
+
             Slug = trimmed;
         }
 
-        public void SetImage(string? imageUrl)
+        // ✅ Привязка картинки после direct upload + finalize
+        public void SetImage(string bucket, string objectKey)
         {
-            if (string.IsNullOrWhiteSpace(imageUrl))
-            {
-                ImageUrl = null;
-                return;
-            }
-            var trimmed = imageUrl.Trim();
-            if (trimmed.Length > 500)
-                trimmed = trimmed[..500];
-            ImageUrl = trimmed;
+            if (string.IsNullOrWhiteSpace(bucket))
+                throw new ArgumentException("Bucket is required", nameof(bucket));
+
+            if (string.IsNullOrWhiteSpace(objectKey))
+                throw new ArgumentException("ObjectKey is required", nameof(objectKey));
+
+            bucket = bucket.Trim();
+            objectKey = objectKey.Trim();
+
+            if (bucket.Length > 100)
+                bucket = bucket[..100];
+
+            if (objectKey.Length > 700)
+                objectKey = objectKey[..700];
+
+            ImageBucket = bucket;
+            ImageObjectKey = objectKey;
+        }
+
+        public void ClearImage()
+        {
+            ImageBucket = null;
+            ImageObjectKey = null;
         }
 
         private void SetName(string name)
@@ -121,15 +142,9 @@ namespace Domain.Catalog
 
         private static string GenerateSlugFrom(string name)
         {
-            // примитивный транслит/слаг
             var slug = name.Trim().ToLowerInvariant();
-
-
             slug = slug.Replace(' ', '-');
-
-
             slug = slug.Replace("ё", "e");
-
 
             var sb = new StringBuilder();
             foreach (var ch in slug)

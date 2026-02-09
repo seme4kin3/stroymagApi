@@ -76,7 +76,6 @@ namespace Application.Admin.Categories.Handlers
                         Name: c.Name,
                         Slug: c.Slug,
                         ParentId: c.ParentId,
-                        ImageUrl: c.ImageUrl,
                         Attributes: attrs
                     );
                 })

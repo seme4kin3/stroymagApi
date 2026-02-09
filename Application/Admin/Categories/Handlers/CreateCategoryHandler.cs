@@ -7,17 +7,17 @@ using MediatR;
 namespace Application.Admin.Categories.Handlers
 {
     public sealed class CreateCategoryHandler(
-       ICategoryAdminRepository categoryRepo,
-       IAttributeAdminRepository attributeRepo,
-       IMeasurementUnitAdminRepository unitRepo
-   ) : IRequestHandler<CreateCategoryCommand, Guid>
+        ICategoryAdminRepository categoryRepo,
+        IAttributeAdminRepository attributeRepo,
+        IMeasurementUnitAdminRepository unitRepo
+    ) : IRequestHandler<CreateCategoryCommand, Guid>
     {
         public async Task<Guid> Handle(CreateCategoryCommand request, CancellationToken ct)
         {
             if (request.Attributes is null || request.Attributes.Count == 0)
                 throw new InvalidOperationException("Категория должна иметь хотя бы один атрибут.");
 
-            // 1. Тянем AttributeDefinition
+            // 1) AttributeDefinition
             var attrIds = request.Attributes
                 .Select(a => a.AttributeDefinitionId)
                 .Distinct()
@@ -27,11 +27,10 @@ namespace Application.Admin.Categories.Handlers
             if (attrDefs.Count != attrIds.Length)
             {
                 var missing = attrIds.Where(id => !attrDefs.ContainsKey(id));
-                throw new InvalidOperationException(
-                    $"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
+                throw new InvalidOperationException($"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
             }
 
-            // 2. Тянем MeasurementUnit по UnitId
+            // 2) Units
             var unitIds = request.Attributes
                 .Select(a => a.UnitId)
                 .Where(id => id.HasValue)
@@ -43,15 +42,14 @@ namespace Application.Admin.Categories.Handlers
                 ? new Dictionary<Guid, MeasurementUnit>()
                 : await unitRepo.GetByIdsAsync(unitIds, ct);
 
-            // 3. Создаём категорию
+            // 3) Category
             var category = new Category(
                 name: request.Name,
                 parentId: request.ParentId,
-                slug: request.Slug,
-                imageUrl: request.ImageUrl
+                slug: request.Slug
             );
 
-            // 4. Привязываем атрибуты
+            // 4) Attach attributes
             foreach (var item in request.Attributes.OrderBy(a => a.SortOrder))
             {
                 var def = attrDefs[item.AttributeDefinitionId];
@@ -60,12 +58,7 @@ namespace Application.Admin.Categories.Handlers
                 if (item.UnitId.HasValue)
                     units.TryGetValue(item.UnitId.Value, out unit);
 
-                category.AttachAttribute(
-                    definition: def,
-                    unit: unit,
-                    isRequired: item.IsRequired,
-                    sortOrder: item.SortOrder
-                );
+                category.AttachAttribute(def, unit, item.IsRequired, item.SortOrder);
             }
 
             await categoryRepo.AddAsync(category, ct);

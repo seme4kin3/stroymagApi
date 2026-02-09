@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(StroymagDbContext))]
-    [Migration("20251118190717_InitialMigrate")]
+    [Migration("20260208115649_InitialMigrate")]
     partial class InitialMigrate
     {
         /// <inheritdoc />
@@ -29,7 +29,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Catalog.AttributeDefinition", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<int>("DataType")
@@ -47,12 +46,8 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.HasKey("Id");
 
@@ -65,13 +60,12 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Catalog.Brand", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
 
@@ -84,10 +78,13 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Catalog.Category", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ImageUrl")
+                    b.Property<string>("ImageBucket")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ImageObjectKey")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -100,15 +97,14 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Slug")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug");
+                    b.HasIndex("ParentId");
 
-                    b.HasIndex("ParentId", "Name")
-                        .IsUnique();
+                    b.HasIndex("Slug");
 
                     b.ToTable("categories", "stroymag");
                 });
@@ -116,7 +112,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Catalog.CategoryAttribute", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("AttributeDefinitionId")
@@ -133,9 +128,14 @@ namespace Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<Guid?>("UnitId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeDefinitionId");
+
+                    b.HasIndex("UnitId");
 
                     b.HasIndex("CategoryId", "AttributeDefinitionId")
                         .IsUnique();
@@ -149,21 +149,52 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Quantity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("numeric(18,3)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("numeric(18,3)");
 
                     b.HasKey("ProductId");
 
-                    b.ToTable("inventory", "stroymag");
+                    b.ToTable("inventory_items", "stroymag");
+                });
+
+            modelBuilder.Entity("Domain.Catalog.MeasurementUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Symbol");
+
+                    b.ToTable("measurement_units", "stroymag");
                 });
 
             modelBuilder.Entity("Domain.Catalog.Product", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(64)
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Advantages")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("advantages");
 
                     b.Property<string>("Article")
                         .IsRequired()
@@ -176,15 +207,16 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Complectation")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("complectation");
+
                     b.Property<string>("Description")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
                     b.Property<bool>("HasStock")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("Has_Stock");
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -195,26 +227,23 @@ namespace Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal?>("RecommendedRetailPrice")
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("Rrp");
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.HasKey("Id");
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("uuid");
 
-                    b.HasIndex("Article");
+                    b.HasKey("Id");
 
                     b.HasIndex("BrandId");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("HasStock");
-
-                    b.HasIndex("Sku")
-                        .IsUnique();
+                    b.HasIndex("UnitId");
 
                     b.ToTable("products", "stroymag");
                 });
@@ -222,7 +251,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Catalog.ProductAttributeValue", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("AttributeDefinitionId")
@@ -254,7 +282,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Catalog.ProductImage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Alt")
@@ -265,12 +292,9 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsPrimary")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("ProductId")
-                        .HasMaxLength(64)
                         .HasColumnType("uuid");
 
                     b.Property<int>("SortOrder")
@@ -280,17 +304,15 @@ namespace Infrastructure.Migrations
 
                     b.Property<string>("StoragePath")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Url")
                         .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProductId", "IsPrimary");
 
                     b.HasIndex("ProductId", "SortOrder");
 
@@ -419,25 +441,38 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Catalog.Category", b =>
                 {
-                    b.HasOne("Domain.Catalog.Category", null)
-                        .WithMany()
+                    b.HasOne("Domain.Catalog.Category", "Parent")
+                        .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("Domain.Catalog.CategoryAttribute", b =>
                 {
-                    b.HasOne("Domain.Catalog.AttributeDefinition", null)
-                        .WithMany()
+                    b.HasOne("Domain.Catalog.AttributeDefinition", "AttributeDefinition")
+                        .WithMany("CategoryAttributes")
                         .HasForeignKey("AttributeDefinitionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Catalog.Category", null)
-                        .WithMany("Attributes")
+                    b.HasOne("Domain.Catalog.Category", "Category")
+                        .WithMany("CategoryAttributes")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Domain.Catalog.MeasurementUnit", "Unit")
+                        .WithMany("CategoryAttributes")
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AttributeDefinition");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("Domain.Catalog.InventoryItem", b =>
@@ -455,34 +490,44 @@ namespace Infrastructure.Migrations
                         .WithMany("Products")
                         .HasForeignKey("BrandId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_products_brands_BrandId");
+                        .IsRequired();
 
                     b.HasOne("Domain.Catalog.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("FK_products_categories_CategoryId");
+                        .IsRequired();
+
+                    b.HasOne("Domain.Catalog.MeasurementUnit", "Unit")
+                        .WithMany("Products")
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("Domain.Catalog.ProductAttributeValue", b =>
                 {
-                    b.HasOne("Domain.Catalog.AttributeDefinition", null)
-                        .WithMany()
+                    b.HasOne("Domain.Catalog.AttributeDefinition", "AttributeDefinition")
+                        .WithMany("ProductValues")
                         .HasForeignKey("AttributeDefinitionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Catalog.Product", null)
+                    b.HasOne("Domain.Catalog.Product", "Product")
                         .WithMany("Attributes")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("AttributeDefinition");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Domain.Catalog.ProductImage", b =>
@@ -521,6 +566,13 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Catalog.AttributeDefinition", b =>
+                {
+                    b.Navigation("CategoryAttributes");
+
+                    b.Navigation("ProductValues");
+                });
+
             modelBuilder.Entity("Domain.Catalog.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -528,7 +580,16 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Catalog.Category", b =>
                 {
-                    b.Navigation("Attributes");
+                    b.Navigation("CategoryAttributes");
+
+                    b.Navigation("Children");
+
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Domain.Catalog.MeasurementUnit", b =>
+                {
+                    b.Navigation("CategoryAttributes");
 
                     b.Navigation("Products");
                 });

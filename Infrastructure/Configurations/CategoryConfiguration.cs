@@ -25,7 +25,10 @@ namespace Infrastructure.Configurations
 
             b.HasIndex(x => x.Slug);
 
-            b.Property(x => x.ImageUrl)
+            b.Property(x => x.ImageBucket)
+                .HasMaxLength(500);
+
+            b.Property(x => x.ImageObjectKey)
                 .HasMaxLength(500);
 
             b.Property(x => x.ParentId);
