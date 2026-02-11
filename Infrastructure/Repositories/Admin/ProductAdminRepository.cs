@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Domain.Catalog;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +30,8 @@ namespace Infrastructure.Repositories.Admin
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .Include(p => p.Unit)
-                .Include(p => p.Attributes);
+                .Include(p => p.Attributes)
+                .Include(p => p.Images);
 
             var total = await query.CountAsync(ct);
 

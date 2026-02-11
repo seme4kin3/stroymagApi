@@ -1,4 +1,3 @@
-﻿
 namespace Application.Admin.Products
 {
     public sealed record ProductAdminListItemDto(
@@ -19,6 +18,7 @@ namespace Application.Admin.Products
         bool HasStock,
         IReadOnlyList<ProductAttributeValueDto> Attributes,
         IReadOnlyList<string> Advantages,
-        IReadOnlyList<string> Complectation
+        IReadOnlyList<string> Complectation,
+        IReadOnlyList<ProductAdminImageDto> Images
     );
 }

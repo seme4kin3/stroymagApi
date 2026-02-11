@@ -1,7 +1,6 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Products.Commands;
 using MediatR;
-
 
 namespace Application.Admin.Products.Handlers
 {
@@ -28,9 +27,23 @@ namespace Application.Admin.Products.Handlers
                 ?? throw new KeyNotFoundException("Товар не найден");
 
             var uploadedItems = new List<(string Bucket, string Key)>();
+            var oldItemsToDelete = new List<(string Bucket, string Key)>();
 
             try
             {
+                if (request.ReplaceExisting)
+                {
+                    foreach (var image in product.Images)
+                    {
+                        if (!TryParseStoragePath(image.StoragePath, out var bucket, out var objectKey))
+                            continue;
+
+                        oldItemsToDelete.Add((bucket, objectKey));
+                    }
+
+                    product.Images.Clear();
+                }
+
                 var nextSortOrder = product.Images.Count == 0
                     ? 0
                     : product.Images.Max(i => i.SortOrder) + 1;
@@ -53,7 +66,6 @@ namespace Application.Admin.Products.Handlers
 
                     var shouldBePrimary = (file.Main ?? false) || !product.Images.Any(i => i.IsPrimary);
 
-
                     product.AddImage(
                         imageId: imageId,
                         url: storageUploader.GetPublicUrl(bucket, objectKey),
@@ -66,6 +78,11 @@ namespace Application.Admin.Products.Handlers
                 }
 
                 await productRepo.SaveChangesAsync(ct);
+
+                foreach (var oldItem in oldItemsToDelete)
+                {
+                    await storageUploader.DeleteIfExistsAsync(oldItem.Bucket, oldItem.Key, ct);
+                }
             }
             catch
             {
@@ -87,6 +104,23 @@ namespace Application.Admin.Products.Handlers
                 throw new InvalidOperationException("Разрешены только jpg/png/webp");
 
             return extension;
+        }
+
+        private static bool TryParseStoragePath(string? storagePath, out string bucket, out string objectKey)
+        {
+            bucket = string.Empty;
+            objectKey = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(storagePath))
+                return false;
+
+            var separatorIndex = storagePath.IndexOf('/');
+            if (separatorIndex <= 0 || separatorIndex >= storagePath.Length - 1)
+                return false;
+
+            bucket = storagePath[..separatorIndex];
+            objectKey = storagePath[(separatorIndex + 1)..];
+            return true;
         }
     }
 }

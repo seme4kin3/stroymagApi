@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Products.Queries;
 using MediatR;
 
@@ -42,6 +42,14 @@ namespace Application.Admin.Products.Handlers
                 })
                 .ToList();
 
+            var imageDtos = p.Images
+                .OrderBy(i => i.SortOrder)
+                .Select(i => new ProductAdminImageDto(
+                    Url: i.Url,
+                    IsPrimary: i.IsPrimary
+                ))
+                .ToList();
+
             return new ProductAdminListItemDto(
                 Id: p.Id,
                 Sku: p.Sku,
@@ -60,7 +68,8 @@ namespace Application.Admin.Products.Handlers
                 HasStock: p.HasStock,
                 Attributes: attrDtos,
                 Advantages: p.Advantages.ToList(),
-                Complectation: p.Complectation.ToList()
+                Complectation: p.Complectation.ToList(),
+                Images: imageDtos
             );
         }
     }
