@@ -1,4 +1,5 @@
-﻿using Application.Admin.Attributes.Commands;
+﻿using Application.Admin;
+using Application.Admin.Attributes.Commands;
 using Application.Admin.Attributes.Queries;
 using Application.Admin.Brands.Commands;
 using Application.Admin.Brands.Queries;
@@ -97,7 +98,8 @@ namespace WebApi.Controllers
                     Content: form.Image.OpenReadStream(),
                     ContentType: form.Image.ContentType,
                     ContentLength: form.Image.Length,
-                    FileName: form.Image.FileName
+                    FileName: form.Image.FileName,
+                    Main: null
                 );
             }
 
@@ -206,6 +208,60 @@ namespace WebApi.Controllers
             return NoContent();
         }
 
+        [HttpPost("products/{id:guid}/images")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadProductImages(
+            Guid id,
+            [FromForm] List<IFormFile> files,
+            [FromForm(Name = "main")] List<bool>? main,
+            CancellationToken ct)
+        {
+            if (files is null || files.Count == 0)
+                return BadRequest("Файлы не переданы");
+
+            var uploadFiles = new List<UploadFileDto>(files.Count);
+            var streams = new List<Stream>(files.Count);
+
+            try
+            {
+                for (var index = 0; index < files.Count; index++)
+                {
+                    var file = files[index];
+                    if (file.Length <= 0)
+                        continue;
+
+                    var stream = file.OpenReadStream();
+                    streams.Add(stream);
+
+                    var isMain = main is not null && index < main.Count && main[index];
+
+                    uploadFiles.Add(new UploadFileDto(
+                        Content: stream,
+                        ContentType: file.ContentType,
+                        ContentLength: file.Length,
+                        FileName: file.FileName,
+                        Main: isMain
+                    ));
+                }
+
+                if (uploadFiles.Count == 0)
+                    return BadRequest("Файлы не переданы");
+
+                await _mediator.Send(new UploadProductImagesCommand(
+                    ProductId: id,
+                    Files: uploadFiles
+                ), ct);
+
+                return NoContent();
+            }
+            finally
+            {
+                foreach (var stream in streams)
+                {
+                    await stream.DisposeAsync();
+                }
+            }
+        }
 
         [HttpGet("brands")]
         public async Task<IActionResult> GetPagedBrands(

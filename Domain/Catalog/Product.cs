@@ -167,6 +167,29 @@ namespace Domain.Catalog
             }
         }
 
+        public void AddImage(Guid imageId, string url, string storagePath, string? alt, bool isPrimary, int sortOrder)
+        {
+            var image = new ProductImage(
+                id: imageId,
+                productId: Id,
+                url: GuardText(url, 500, nameof(url)),
+                storagePath: GuardText(storagePath, 500, nameof(storagePath)),
+                alt: alt,
+                isPrimary: isPrimary,
+                sortOrder: sortOrder
+            );
+
+            if (isPrimary)
+            {
+                foreach (var existingImage in Images.Where(i => i.IsPrimary))
+                    existingImage.ClearPrimary();
+
+                image.MakePrimary();
+            }
+
+            Images.Add(image);
+        }
+
         private static string GuardText(string value, int max, string name)
         {
             if (string.IsNullOrWhiteSpace(value))

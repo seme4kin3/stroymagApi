@@ -17,6 +17,7 @@ namespace Infrastructure.Repositories.Admin
         public Task<Product?> GetWithAttributesAsync(Guid id, CancellationToken ct) =>
             _db.Set<Product>()
               .Include(p => p.Attributes)
+              .Include(p => p.Images)
               .FirstOrDefaultAsync(p => p.Id == id, ct);
 
         public async Task<(IReadOnlyList<Product> Items, int Total)> GetPagedAsync(
@@ -55,6 +56,11 @@ namespace Infrastructure.Repositories.Admin
               .Include(p => p.Category)
               .Include(p => p.Unit)
               .Include(p => p.Attributes)
+              .Include(p => p.Images)
               .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+        public Task<Product?> GetByIdAsync(Guid id, CancellationToken ct) =>
+             _db.Set<Product>()
+              .FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 }

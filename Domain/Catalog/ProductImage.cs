@@ -14,8 +14,9 @@ namespace Domain.Catalog
         public DateTime CreatedAtUtc { get; private set; } = DateTime.UtcNow;
 
         private ProductImage() { }
-        public ProductImage(Guid productId, string url, string storagePath, string? alt, bool isPrimary, int sortOrder)
+        public ProductImage(Guid id, Guid productId, string url, string storagePath, string? alt, bool isPrimary, int sortOrder)
         {
+            Id = id;
             ProductId = productId;
             Url = url;
             StoragePath = storagePath;

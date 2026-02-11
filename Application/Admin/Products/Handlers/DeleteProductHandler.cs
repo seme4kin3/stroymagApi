@@ -11,7 +11,7 @@ namespace Application.Admin.Products.Handlers
     {
         public async Task Handle(DeleteProductCommand request, CancellationToken ct)
         {
-            var product = await productRepo.GetWithAttributesAsync(request.Id, ct);
+            var product = await productRepo.GetByIdAsync(request.Id, ct);
             if (product is null)
                 return;
 

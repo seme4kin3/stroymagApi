@@ -7,6 +7,7 @@ namespace Application.Abstractions.Admin
         Task AddAsync(Product product, CancellationToken ct);
 
         Task<Product?> GetWithAttributesAsync(Guid id, CancellationToken ct);
+        Task<Product?> GetByIdAsync(Guid id, CancellationToken ct);
 
         Task<(IReadOnlyList<Product> Items, int Total)> GetPagedAsync(
             int page,
