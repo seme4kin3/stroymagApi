@@ -20,8 +20,10 @@ namespace Application.Admin.MeasurementUnits.Handlers
         {
             var page = request.Page > 0 ? request.Page : 1;
             var pageSize = request.PageSize > 0 ? request.PageSize : 50;
+            var name = request.Name;
+            var symbol = request.Symbol;
 
-            var (items, total) = await _repo.GetPagedAsync(page, pageSize, ct);
+            var (items, total) = await _repo.GetPagedAsync(page, pageSize, name, symbol, ct);
 
             var dtoItems = items
                 .Select(u => new MeasurementUnitListItemDto(

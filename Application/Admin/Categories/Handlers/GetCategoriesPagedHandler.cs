@@ -21,8 +21,9 @@ namespace Application.Admin.Categories.Handlers
         {
             var page = request.Page > 0 ? request.Page : 1;
             var pageSize = request.PageSize > 0 ? request.PageSize : 50;
+            var name = request.Name;
 
-            var (categories, total) = await categoryRepo.GetPagedAsync(page, pageSize, ct);
+            var (categories, total) = await categoryRepo.GetPagedAsync(page, pageSize, name, ct);
 
             // собираем id атрибутов и единиц измерения
             var allAttrIds = categories

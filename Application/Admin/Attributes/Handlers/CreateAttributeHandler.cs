@@ -10,7 +10,7 @@ namespace Application.Admin.Attributes.Handlers
     {
         public async Task<Guid> Handle(CreateAttributeCommand request, CancellationToken ct)
         {
-            var attr = new AttributeDefinition(request.Name, request.Key, request.DataType);
+            var attr = new AttributeDefinition(request.Name, request.DataType);
             await repo.AddAsync(attr, ct);
             await repo.SaveChangesAsync(ct);
             return attr.Id;

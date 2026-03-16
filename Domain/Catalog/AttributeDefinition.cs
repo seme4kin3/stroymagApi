@@ -1,4 +1,7 @@
 ﻿
+using System.Text.RegularExpressions;
+using System.Text;
+
 namespace Domain.Catalog
 {
     public class AttributeDefinition
@@ -16,10 +19,10 @@ namespace Domain.Catalog
 
         private AttributeDefinition() { }
 
-        public AttributeDefinition(string name, string key, AttributeDataType dataType)
+        public AttributeDefinition(string name, AttributeDataType dataType)
         {
             SetName(name);
-            SetKey(key);
+            SetKey(GenerateKeyFrom(name));
             DataType = dataType;
         }
 
@@ -46,6 +49,85 @@ namespace Domain.Catalog
             if (string.IsNullOrWhiteSpace(key))
                 throw new ArgumentException("Attribute key is required", nameof(key));
             Key = key.Trim().ToLowerInvariant();
+        }
+
+        private static string GenerateKeyFrom(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "category";
+
+            var slug = Transliterate(name.Trim().ToLowerInvariant());
+
+            var sb = new StringBuilder();
+            foreach (var ch in slug)
+            {
+                if ((ch >= 'a' && ch <= 'z') ||
+                    (ch >= '0' && ch <= '9'))
+                {
+                    sb.Append(ch);
+                }
+                else
+                {
+                    sb.Append('-');
+                }
+            }
+
+            var res = Regex.Replace(sb.ToString(), "-{2,}", "-")
+                           .Trim('-');
+
+            return string.IsNullOrWhiteSpace(res) ? "category" : res;
+        }
+
+        private static string Transliterate(string input)
+        {
+            var map = new Dictionary<char, string>
+            {
+                ['а'] = "a",
+                ['б'] = "b",
+                ['в'] = "v",
+                ['г'] = "g",
+                ['д'] = "d",
+                ['е'] = "e",
+                ['ё'] = "e",
+                ['ж'] = "zh",
+                ['з'] = "z",
+                ['и'] = "i",
+                ['й'] = "y",
+                ['к'] = "k",
+                ['л'] = "l",
+                ['м'] = "m",
+                ['н'] = "n",
+                ['о'] = "o",
+                ['п'] = "p",
+                ['р'] = "r",
+                ['с'] = "s",
+                ['т'] = "t",
+                ['у'] = "u",
+                ['ф'] = "f",
+                ['х'] = "h",
+                ['ц'] = "ts",
+                ['ч'] = "ch",
+                ['ш'] = "sh",
+                ['щ'] = "sch",
+                ['ъ'] = "",
+                ['ы'] = "y",
+                ['ь'] = "",
+                ['э'] = "e",
+                ['ю'] = "yu",
+                ['я'] = "ya"
+            };
+
+            var sb = new StringBuilder();
+
+            foreach (var ch in input)
+            {
+                if (map.TryGetValue(ch, out var val))
+                    sb.Append(val);
+                else
+                    sb.Append(ch);
+            }
+
+            return sb.ToString();
         }
     }
 }

@@ -19,8 +19,9 @@ namespace Application.Admin.Attributes.Handlers
         {
             var page = request.Page > 0 ? request.Page : 1;
             var pageSize = request.PageSize > 0 ? request.PageSize : 50;
+            var name = request.Name;
 
-            var (items, total) = await _repo.GetPagedAsync(page, pageSize, ct);
+            var (items, total) = await _repo.GetPagedAsync(page, pageSize, name, ct);
 
             var dtoItems = items
                 .Select(a => new AttributeAdminListItemDto(

@@ -60,26 +60,35 @@ namespace Domain.Catalog
             HasStock = hasStock;
         }
 
-        public void UpdateBasic(
+        public void Update(
+            string sku,
             string name,
-            string? description,
+            Guid brandId,
+            Guid categoryId,
+            Guid unitId,
             decimal price,
-            decimal? rrp = null,
-            bool? hasStock = null,
-            Guid? unitId = null)
+            string? description = null,
+            string? article = null,
+            decimal? recommendedRetailPrice = null,
+            bool hasStock = false)
         {
+            Sku = GuardText(sku, 64, nameof(sku));
             Name = GuardText(name, 500, nameof(name));
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+            BrandId = brandId;
+            CategoryId = categoryId;
+            UnitId = unitId;
+
             Price = price >= 0 ? price : throw new ArgumentOutOfRangeException(nameof(price));
 
-            if (rrp.HasValue)
-                RecommendedRetailPrice = rrp.Value;
+            // Поведение как в конструкторе: если article не задан — используем sku
+            Article = string.IsNullOrWhiteSpace(article)
+                ? Sku
+                : GuardText(article, 128, nameof(article));
 
-            if (hasStock.HasValue)
-                HasStock = hasStock.Value;
-
-            if (unitId.HasValue)
-                UnitId = unitId.Value;
+            RecommendedRetailPrice = recommendedRetailPrice;
+            HasStock = hasStock;
         }
 
         public void SetHasStock(bool value) => HasStock = value;

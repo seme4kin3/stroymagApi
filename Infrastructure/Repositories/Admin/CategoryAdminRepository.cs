@@ -25,11 +25,21 @@ namespace Infrastructure.Repositories.Admin
         public void Remove(Category category) => _db.Set<Category>().Remove(category);
 
         public Task<int> SaveChangesAsync(CancellationToken ct) => _db.SaveChangesAsync(ct);
-        public async Task<(IReadOnlyList<Category> Items, int Total)> GetPagedAsync(int page, int pageSize, CancellationToken ct)
+        public async Task<(IReadOnlyList<Category> Items, int Total)> GetPagedAsync(
+            int page,
+            int pageSize,
+            string? name,
+            CancellationToken ct)
         {
-            var query = _db.Set<Category>()
+            IQueryable<Category> query = _db.Set<Category>()
                 .AsNoTracking()
                 .Include(c => c.CategoryAttributes); // ⬅ атрибуты категории
+            var nameLike = name?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(nameLike))
+            {
+                query = query.Where(c => EF.Functions.ILike(c.Name, $"%{nameLike}%"));
+            }
 
             var total = await query.CountAsync(ct);
 

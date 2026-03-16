@@ -5,6 +5,7 @@ namespace Application.Admin.Products
         string Sku,
         string Article,
         string Name,
+        string Description,
         Guid BrandId,
         string BrandName,
         Guid CategoryId,

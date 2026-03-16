@@ -17,8 +17,11 @@ namespace Application.Admin.Products.Handlers
         {
             var page = request.Page > 0 ? request.Page : 1;
             var pageSize = request.PageSize > 0 ? request.PageSize : 50;
+            var name = request.Name;
+            var article = request.Article;
+            var barcode = request.Barcode;
 
-            var (products, total) = await productRepo.GetPagedAsync(page, pageSize, ct);
+            var (products, total) = await productRepo.GetPagedAsync(page, pageSize, name, article, barcode, ct);
 
             // все AttributeDefinitionId, используемые в продуктах
             var allAttrIds = products
@@ -48,19 +51,20 @@ namespace Application.Admin.Products.Handlers
                     })
                     .ToList();
 
-                var imageDtos = p.Images
-                    .OrderBy(i => i.SortOrder)
-                    .Select(i => new ProductAdminImageDto(
-                        Url: i.Url,
-                        IsPrimary: i.IsPrimary
-                    ))
-                    .ToList();
+                //var imageDtos = p.Images
+                //    .OrderBy(i => i.SortOrder)
+                //    .Select(i => new ProductAdminImageDto(
+                //        Url: i.Url,
+                //        IsPrimary: i.IsPrimary
+                //    ))
+                //    .ToList();
 
                 return new ProductAdminListItemDto(
                     Id: p.Id,
                     Sku: p.Sku,
                     Article: p.Article,
                     Name: p.Name,
+                    Description: p.Description ?? string.Empty,
                     BrandId: p.BrandId,
                     BrandName: p.Brand?.Name ?? string.Empty,
                     CategoryId: p.CategoryId,
@@ -75,7 +79,7 @@ namespace Application.Admin.Products.Handlers
                     Attributes: attrDtos,
                     Advantages: p.Advantages.ToList(),
                     Complectation: p.Complectation.ToList(),
-                    Images: imageDtos
+                    Images: Array.Empty<ProductAdminImageDto>() //убрать, нужно сделать нормальное dto
                 );
             }).ToList();
 

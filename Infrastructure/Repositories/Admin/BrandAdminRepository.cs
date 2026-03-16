@@ -22,9 +22,16 @@ namespace Infrastructure.Repositories.Admin
         public async Task<(IReadOnlyList<Brand> Items, int Total)> GetPagedAsync(
             int page,
             int pageSize,
+            string? name,
             CancellationToken ct)
         {
             var query = _db.Set<Brand>().AsNoTracking();
+            var nameLike = name?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(nameLike))
+            {
+                query = query.Where(b => EF.Functions.ILike(b.Name, $"%{nameLike}%"));
+            }
 
             var total = await query.CountAsync(ct);
 

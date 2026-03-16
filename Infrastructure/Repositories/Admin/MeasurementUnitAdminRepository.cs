@@ -19,9 +19,25 @@ namespace Infrastructure.Repositories.Admin
             _db.Set<MeasurementUnit>().FirstOrDefaultAsync(u => u.Id == id, ct);
 
         public async Task<(IReadOnlyList<MeasurementUnit> Items, int Total)> GetPagedAsync(
-            int page, int pageSize, CancellationToken ct)
+            int page,
+            int pageSize,
+            string? name,
+            string? symbol,
+            CancellationToken ct)
         {
             var query = _db.Set<MeasurementUnit>().AsNoTracking();
+            var nameLike = name?.Trim();
+            var symbolLike = symbol?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(nameLike))
+            {
+                query = query.Where(u => EF.Functions.ILike(u.Name, $"%{nameLike}%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(symbolLike))
+            {
+                query = query.Where(u => EF.Functions.ILike(u.Symbol, $"%{symbolLike}%"));
+            }
 
             var total = await query.CountAsync(ct);
 

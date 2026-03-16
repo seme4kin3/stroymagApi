@@ -45,8 +45,7 @@ namespace Application.Admin.Categories.Handlers
             // 3) Category
             var category = new Category(
                 name: request.Name,
-                parentId: request.ParentId,
-                slug: request.Slug
+                parentId: request.ParentId
             );
 
             // 4) Attach attributes

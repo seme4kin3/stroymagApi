@@ -17,11 +17,14 @@ namespace Application.Admin.Products.Handlers
                 ?? throw new KeyNotFoundException("Product not found");
 
             // 2. обновляем basic + UnitId
-            product.UpdateBasic(
+            product.Update(
+                sku: request.Sku,
+                brandId: request.BrandId,
+                categoryId: request.CategoryId,
                 name: request.Name,
                 description: request.Description,
                 price: request.Price,
-                rrp: request.RecommendedRetailPrice,
+                recommendedRetailPrice: request.RecommendedRetailPrice,
                 hasStock: request.HasStock,
                 unitId: request.UnitId
             );

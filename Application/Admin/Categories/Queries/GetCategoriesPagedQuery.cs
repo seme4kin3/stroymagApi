@@ -5,6 +5,9 @@ using MediatR;
 
 namespace Application.Admin.Categories.Queries
 {
-    public sealed record GetCategoriesPagedQuery(int Page = 1, int PageSize = 50)
+    public sealed record GetCategoriesPagedQuery(
+        int Page = 1,
+        int PageSize = 50,
+        string? Name = null)
         : IRequest<PagedResult<CategoryAdminDto>>;
 }

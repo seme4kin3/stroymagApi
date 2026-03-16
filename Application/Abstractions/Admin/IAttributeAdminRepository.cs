@@ -8,6 +8,7 @@ namespace Application.Abstractions.Admin
         Task<(IReadOnlyList<AttributeDefinition> Items, int Total)> GetPagedAsync(
             int page,
             int pageSize,
+            string? name,
             CancellationToken ct);
 
         Task<AttributeDefinition?> GetByIdAsync(Guid id, CancellationToken ct);

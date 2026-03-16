@@ -11,6 +11,7 @@ namespace Application.Abstractions.Admin
         Task<(IReadOnlyList<Brand> Items, int Total)> GetPagedAsync(
             int page,
             int pageSize,
+            string? name,
             CancellationToken ct);
 
         void Remove(Brand brand);

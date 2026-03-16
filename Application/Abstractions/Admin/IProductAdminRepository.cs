@@ -12,6 +12,9 @@ namespace Application.Abstractions.Admin
         Task<(IReadOnlyList<Product> Items, int Total)> GetPagedAsync(
             int page,
             int pageSize,
+            string? name,
+            string? article,
+            string? barcode,
             CancellationToken ct);
 
         void Remove(Product product);

@@ -12,6 +12,7 @@ namespace Application.Abstractions.Admin
         Task<(IReadOnlyList<Category> Items, int Total)> GetPagedAsync(
             int page,
             int pageSize,
+            string? name,
             CancellationToken ct);
 
         void Remove(Category category);

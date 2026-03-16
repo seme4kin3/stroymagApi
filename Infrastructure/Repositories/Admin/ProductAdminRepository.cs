@@ -23,15 +23,36 @@ namespace Infrastructure.Repositories.Admin
         public async Task<(IReadOnlyList<Product> Items, int Total)> GetPagedAsync(
             int page,
             int pageSize,
+            string? name,
+            string? article,
+            string? barcode,
             CancellationToken ct)
         {
-            var query = _db.Set<Product>()
+            IQueryable<Product> query = _db.Set<Product>()
                 .AsNoTracking()
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .Include(p => p.Unit)
                 .Include(p => p.Attributes)
                 .Include(p => p.Images);
+            var nameLike = name?.Trim();
+            var articleLike = article?.Trim();
+            var barcodeLike = barcode?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(nameLike))
+            {
+                query = query.Where(p => EF.Functions.ILike(p.Name, $"%{nameLike}%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(articleLike))
+            {
+                query = query.Where(p => EF.Functions.ILike(p.Article, $"%{articleLike}%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(barcodeLike))
+            {
+                query = query.Where(p => EF.Functions.ILike(p.Sku, $"%{barcodeLike}%"));
+            }
 
             var total = await query.CountAsync(ct);
 

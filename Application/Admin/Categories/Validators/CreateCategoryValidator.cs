@@ -8,7 +8,7 @@ namespace Application.Admin.Categories.Validators
         public CreateCategoryValidator()
         {
             RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-            RuleFor(x => x.Slug).MaximumLength(200).When(x => x.Slug != null);
+            //RuleFor(x => x.Slug).MaximumLength(200).When(x => x.Slug != null);
         }
     }
 }

@@ -33,13 +33,12 @@ namespace Domain.Catalog
 
         public void SetValueFromRaw(AttributeDefinition def, string? raw)
         {
+            StringValue = null;
+            NumericValue = null;
+            BoolValue = null;
+
             if (string.IsNullOrWhiteSpace(raw))
-            {
-                StringValue = null;
-                NumericValue = null;
-                BoolValue = null;
                 return;
-            }
 
             raw = raw.Trim();
 
@@ -47,33 +46,29 @@ namespace Domain.Catalog
             {
                 case AttributeDataType.String:
                     StringValue = raw;
-                    NumericValue = null;
-                    BoolValue = null;
-                    break;
+                    return;
 
                 case AttributeDataType.Integer:
                     if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
                         throw new FormatException($"Cannot parse '{raw}' as int for attribute '{def.Name}'.");
-                    StringValue = raw;
                     NumericValue = i;
-                    BoolValue = null;
-                    break;
+                    return;
 
                 case AttributeDataType.Decimal:
-                    if (!decimal.TryParse(raw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
-                        throw new FormatException($"Cannot parse '{raw}' as decimal for attribute '{def.Name}'.");
-                    StringValue = raw;
+                    // лучше не Replace(",", "."), а парсить и InvariantCulture и текущую культуру при необходимости
+                    if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
+                    {
+                        // fallback на текущую культуру, если пользователь вводит "15,2" в ru-RU
+                        if (!decimal.TryParse(raw, NumberStyles.Number, CultureInfo.CurrentCulture, out d))
+                            throw new FormatException($"Cannot parse '{raw}' as decimal for attribute '{def.Name}'.");
+                    }
                     NumericValue = d;
-                    BoolValue = null;
-                    break;
+                    return;
 
                 case AttributeDataType.Boolean:
-                    var n = raw.ToLowerInvariant();
-                    var b = n is "1" or "true" or "yes" or "да";
-                    StringValue = n;
-                    NumericValue = null;
-                    BoolValue = b;
-                    break;
+                    var n = raw.Trim().ToLowerInvariant();
+                    BoolValue = n is "1" or "true" or "yes" or "да";
+                    return;
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(def.DataType), $"Unsupported type {def.DataType}");

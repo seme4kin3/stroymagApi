@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Domain.Catalog
 {
@@ -24,12 +25,11 @@ namespace Domain.Catalog
 
         private Category() { }
 
-        // ❌ imageUrl убираем из конструктора — картинка привязывается отдельным use-case (finalize)
         public Category(string name, Guid? parentId = null, string? slug = null)
         {
             SetName(name);
             ParentId = parentId;
-            SetSlug(slug ?? GenerateSlugFrom(name));
+            SetSlug(GenerateSlugFrom(name));
         }
 
         public void Rename(string name)
@@ -57,7 +57,6 @@ namespace Domain.Catalog
             Slug = trimmed;
         }
 
-        // ✅ Привязка картинки после direct upload + finalize
         public void SetImage(string bucket, string objectKey)
         {
             if (string.IsNullOrWhiteSpace(bucket))
@@ -142,16 +141,16 @@ namespace Domain.Catalog
 
         private static string GenerateSlugFrom(string name)
         {
-            var slug = name.Trim().ToLowerInvariant();
-            slug = slug.Replace(' ', '-');
-            slug = slug.Replace("ё", "e");
+            if (string.IsNullOrWhiteSpace(name))
+                return "category";
+
+            var slug = Transliterate(name.Trim().ToLowerInvariant());
 
             var sb = new StringBuilder();
             foreach (var ch in slug)
             {
                 if ((ch >= 'a' && ch <= 'z') ||
-                    (ch >= '0' && ch <= '9') ||
-                    ch == '-')
+                    (ch >= '0' && ch <= '9'))
                 {
                     sb.Append(ch);
                 }
@@ -161,8 +160,62 @@ namespace Domain.Catalog
                 }
             }
 
-            var res = sb.ToString().Trim('-');
+            var res = Regex.Replace(sb.ToString(), "-{2,}", "-")
+                           .Trim('-');
+
             return string.IsNullOrWhiteSpace(res) ? "category" : res;
+        }
+
+        private static string Transliterate(string input)
+        {
+            var map = new Dictionary<char, string>
+            {
+                ['а'] = "a",
+                ['б'] = "b",
+                ['в'] = "v",
+                ['г'] = "g",
+                ['д'] = "d",
+                ['е'] = "e",
+                ['ё'] = "e",
+                ['ж'] = "zh",
+                ['з'] = "z",
+                ['и'] = "i",
+                ['й'] = "y",
+                ['к'] = "k",
+                ['л'] = "l",
+                ['м'] = "m",
+                ['н'] = "n",
+                ['о'] = "o",
+                ['п'] = "p",
+                ['р'] = "r",
+                ['с'] = "s",
+                ['т'] = "t",
+                ['у'] = "u",
+                ['ф'] = "f",
+                ['х'] = "h",
+                ['ц'] = "ts",
+                ['ч'] = "ch",
+                ['ш'] = "sh",
+                ['щ'] = "sch",
+                ['ъ'] = "",
+                ['ы'] = "y",
+                ['ь'] = "",
+                ['э'] = "e",
+                ['ю'] = "yu",
+                ['я'] = "ya"
+            };
+
+            var sb = new StringBuilder();
+
+            foreach (var ch in input)
+            {
+                if (map.TryGetValue(ch, out var val))
+                    sb.Append(val);
+                else
+                    sb.Append(ch);
+            }
+
+            return sb.ToString();
         }
     }
 }

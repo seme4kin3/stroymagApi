@@ -45,8 +45,10 @@ namespace Application.Admin.Products.Handlers
             var imageDtos = p.Images
                 .OrderBy(i => i.SortOrder)
                 .Select(i => new ProductAdminImageDto(
+                    Id: i.Id,
                     Url: i.Url,
-                    IsPrimary: i.IsPrimary
+                    IsPrimary: i.IsPrimary,
+                    SortOrder: i.SortOrder
                 ))
                 .ToList();
 
@@ -55,6 +57,7 @@ namespace Application.Admin.Products.Handlers
                 Sku: p.Sku,
                 Article: p.Article,
                 Name: p.Name,
+                Description: p.Description ?? string.Empty,
                 BrandId: p.BrandId,
                 BrandName: p.Brand?.Name ?? string.Empty,
                 CategoryId: p.CategoryId,

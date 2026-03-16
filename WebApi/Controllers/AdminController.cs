@@ -32,9 +32,13 @@ namespace WebApi.Controllers
         }
 
         [HttpGet("attributes")]
-        public async Task<IActionResult> GetPagedAttribute([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+        public async Task<IActionResult> GetPagedAttribute(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? name = null,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetAttributesPagedQuery(page, pageSize), ct);
+            var result = await _mediator.Send(new GetAttributesPagedQuery(page, pageSize, name), ct);
             return Ok(result);
         }
 
@@ -75,9 +79,13 @@ namespace WebApi.Controllers
         // Создание категории + атрибуты (обязательно)
 
         [HttpGet("categories")]
-        public async Task<IActionResult> GetPagedCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+        public async Task<IActionResult> GetPagedCategories(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? name = null,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetCategoriesPagedQuery(page, pageSize), ct);
+            var result = await _mediator.Send(new GetCategoriesPagedQuery(page, pageSize, name), ct);
             return Ok(result);
         }
 
@@ -106,7 +114,7 @@ namespace WebApi.Controllers
             var id = await _mediator.Send(new CreateCategoryCommand(
                 Name: form.Name,
                 ParentId: form.ParentId,
-                Slug: form.Slug,
+                //Slug: form.Slug,
                 Attributes: attrs,
                 Image: imageDto
             ), ct);
@@ -168,9 +176,15 @@ namespace WebApi.Controllers
         // 4) Создать товар (и применить значения атрибутов категории)
 
         [HttpGet("products")]
-        public async Task<IActionResult> GetPagedProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default)
+        public async Task<IActionResult> GetPagedProducts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? name = null,
+            [FromQuery] string? article = null,
+            [FromQuery] string? barcode = null,
+            CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetProductsPagedQuery(page, pageSize), ct);
+            var result = await _mediator.Send(new GetProductsPagedQuery(page, pageSize, name, article, barcode), ct);
             return Ok(result);
         }
 
@@ -324,9 +338,10 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetPagedBrands(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
+            [FromQuery] string? name = null,
             CancellationToken ct = default)
         {
-            var result = await _mediator.Send(new GetBrandsPagedQuery(page, pageSize), ct);
+            var result = await _mediator.Send(new GetBrandsPagedQuery(page, pageSize, name), ct);
             return Ok(result);
         }
 
@@ -364,8 +379,10 @@ namespace WebApi.Controllers
         public async Task<ActionResult<PagedResult<MeasurementUnitListItemDto>>> GetPagedUnits(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
+            [FromQuery] string? name = null,
+            [FromQuery] string? symbol = null,
             CancellationToken ct = default)
-         => Ok(await _mediator.Send(new GetMeasurementUnitsPagedQuery(page, pageSize), ct));
+         => Ok(await _mediator.Send(new GetMeasurementUnitsPagedQuery(page, pageSize, name, symbol), ct));
 
         [HttpPost("units")]
         public async Task<IActionResult> CreateUnit(

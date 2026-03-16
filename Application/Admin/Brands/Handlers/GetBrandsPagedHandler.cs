@@ -19,8 +19,9 @@ namespace Application.Admin.Brands.Handlers
         {
             var page = request.Page;
             var pageSize = request.PageSize;
+            var name = request.Name;
 
-            var (items, total) = await repo.GetPagedAsync(page, pageSize, ct);
+            var (items, total) = await repo.GetPagedAsync(page, pageSize, name, ct);
 
             var dtoItems = items
                 .Select(b => new BrandListItemDto(
