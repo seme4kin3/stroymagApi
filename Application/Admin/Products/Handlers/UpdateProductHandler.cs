@@ -1,5 +1,6 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Products.Commands;
+using Application.Common.Exceptions;
 using MediatR;
 
 namespace Application.Admin.Products.Handlers
@@ -14,7 +15,7 @@ namespace Application.Admin.Products.Handlers
         {
             // 1. подтягиваем продукт с атрибутами
             var product = await productRepo.GetWithAttributesAsync(request.Id, ct)
-                ?? throw new KeyNotFoundException("Product not found");
+                ?? throw new NotFoundException("Товар не найден.");
 
             // 2. обновляем basic + UnitId
             product.Update(
@@ -40,7 +41,7 @@ namespace Application.Admin.Products.Handlers
 
             // 3. категория и её атрибуты
             var category = await categoryRepo.GetWithAttributesAsync(product.CategoryId, ct)
-                ?? throw new InvalidOperationException("Product category not found");
+                ?? throw new NotFoundException("Категория товара не найдена.");
 
             var attachedAttrIds = category.CategoryAttributes
                 .Select(a => a.AttributeDefinitionId)
@@ -51,7 +52,7 @@ namespace Application.Admin.Products.Handlers
             if (attrDefs.Count != attachedAttrIds.Length)
             {
                 var missing = attachedAttrIds.Where(id => !attrDefs.ContainsKey(id));
-                throw new InvalidOperationException(
+                throw new NotFoundException(
                     $"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 

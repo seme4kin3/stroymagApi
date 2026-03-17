@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions.Admin;
 using Application.Admin.Attributes.Commands;
+using Application.Common.Exceptions;
 using MediatR;
 
 
@@ -16,7 +17,7 @@ namespace Application.Admin.Attributes.Handlers
         public async Task<Unit> Handle(DeleteAttributeCommand request, CancellationToken ct)
         {
             var attr = await _repo.GetByIdAsync(request.Id, ct)
-                ?? throw new KeyNotFoundException($"Атрибут {request.Id} не найден.");
+                ?? throw new NotFoundException($"Атрибут {request.Id} не найден.");
 
             // мягкое удаление
             attr.Deactivate();

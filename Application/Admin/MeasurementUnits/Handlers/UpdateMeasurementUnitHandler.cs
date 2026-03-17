@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions.Admin;
 using Application.Admin.MeasurementUnits.Commands;
+using Application.Common.Exceptions;
 using MediatR;
 
 namespace Application.Admin.MeasurementUnits.Handlers
@@ -15,7 +16,7 @@ namespace Application.Admin.MeasurementUnits.Handlers
         public async Task Handle(UpdateMeasurementUnitCommand request, CancellationToken ct)
         {
             var unit = await _repo.GetAsync(request.Id, ct)
-                ?? throw new KeyNotFoundException($"MeasurementUnit {request.Id} not found");
+                ?? throw new NotFoundException("Единица измерения не найдена.");
 
             unit.Rename(request.Name);
             unit.ChangeSymbol(request.Symbol);

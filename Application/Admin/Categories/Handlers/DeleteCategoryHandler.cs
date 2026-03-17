@@ -1,5 +1,6 @@
 ﻿using Application.Abstractions.Admin;
 using Application.Admin.Categories.Commands;
+using Application.Common.Exceptions;
 using MediatR;
 
 
@@ -13,7 +14,7 @@ namespace Application.Admin.Categories.Handlers
         public async Task Handle(DeleteCategoryCommand request, CancellationToken ct)
         {
             var category = await categoryRepo.GetByIdAsync(request.Id, ct)
-                ?? throw new KeyNotFoundException("Категория не найдена");
+                ?? throw new NotFoundException("Категория не найдена.");
 
             var bucket = category.ImageBucket;
             var key = category.ImageObjectKey;

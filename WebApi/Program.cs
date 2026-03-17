@@ -1,4 +1,5 @@
 using Infrastructure;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApi.Filters;
 using Application;
@@ -39,12 +40,16 @@ builder.Services.AddSingleton(provider =>
 });
 
 builder.Services.AddControllers().AddJsonOptions(_ => { });
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
 //builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Импорт из Excel 
+// пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ Excel 
 //builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 
 var app = builder.Build();
@@ -53,7 +58,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Применяем миграции при старте (опционально, но удобно)
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<StroymagDbContext>();

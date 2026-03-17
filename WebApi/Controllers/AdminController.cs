@@ -25,6 +25,7 @@ namespace WebApi.Controllers
     public sealed class AdminController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private static readonly JsonSerializerOptions _caseInsensitive = new() { PropertyNameCaseInsensitive = true };
 
         public AdminController(IMediator mediator)
         {
@@ -93,10 +94,12 @@ namespace WebApi.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateCategory([FromForm] CreateCategoryForm form, CancellationToken ct)
         {
-            var attrs = JsonSerializer.Deserialize<List<CategoryAttributeAdminItemDto>>(
-                form.AttributesJson,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            ) ?? new();
+            var attrs = string.IsNullOrWhiteSpace(form.AttributesJson)
+                ? []
+                : JsonSerializer.Deserialize<List<CategoryAttributeAdminItemDto>>(
+                    form.AttributesJson,
+                    _caseInsensitive
+                  ) ?? [];
 
             UploadFileDto? imageDto = null;
 

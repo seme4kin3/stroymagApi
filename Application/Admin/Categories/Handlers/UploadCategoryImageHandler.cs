@@ -1,5 +1,6 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Categories.Commands;
+using Application.Common.Exceptions;
 using MediatR;
 
 
@@ -13,7 +14,7 @@ namespace Application.Admin.Categories.Handlers
         public async Task Handle(UploadCategoryImageCommand request, CancellationToken ct)
         {
             var category = await categoryRepo.GetByIdAsync(request.CategoryId, ct)
-                ?? throw new KeyNotFoundException("Категория не найдена");
+                ?? throw new NotFoundException("Категория не найдена.");
 
             ValidateImage(request);
 
@@ -31,7 +32,7 @@ namespace Application.Admin.Categories.Handlers
                     "image/jpeg" => "jpg",
                     "image/png" => "png",
                     "image/webp" => "webp",
-                    _ => throw new InvalidOperationException("Разрешены только jpg/png/webp")
+                    _ => throw new DomainException("Разрешены только jpg/png/webp.")
                 };
 
                 newBucket = "category";
@@ -70,11 +71,11 @@ namespace Application.Admin.Categories.Handlers
         private static void ValidateImage(UploadCategoryImageCommand request)
         {
             if (request.ContentLength <= 0 || request.ContentLength > 5 * 1024 * 1024)
-                throw new InvalidOperationException("Файл должен быть до 5MB");
+                throw new DomainException("Файл должен быть до 5MB.");
 
             var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
             if (!allowed.Contains(request.ContentType))
-                throw new InvalidOperationException("Разрешены только jpg/png/webp");
+                throw new DomainException("Разрешены только jpg/png/webp.");
         }
     }
 }

@@ -1,5 +1,6 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Products.Commands;
+using Application.Common.Exceptions;
 using Domain.Catalog;
 using MediatR;
 
@@ -15,7 +16,7 @@ namespace Application.Admin.Products.Handlers
         {
             // 1. категория с CategoryAttributes
             var category = await categoryRepo.GetWithAttributesAsync(request.CategoryId, ct)
-                ?? throw new KeyNotFoundException("Category not found");
+                ?? throw new NotFoundException("Категория не найдена.");
 
             // 2. определения атрибутов
             var attachedAttrIds = category.CategoryAttributes
@@ -27,7 +28,7 @@ namespace Application.Admin.Products.Handlers
             if (attrDefs.Count != attachedAttrIds.Length)
             {
                 var missing = attachedAttrIds.Where(id => !attrDefs.ContainsKey(id));
-                throw new InvalidOperationException(
+                throw new NotFoundException(
                     $"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 

@@ -1,5 +1,6 @@
 using Application.Abstractions.Admin;
 using Application.Admin.Products.Commands;
+using Application.Common.Exceptions;
 using MediatR;
 
 namespace Application.Admin.Products.Handlers
@@ -21,10 +22,10 @@ namespace Application.Admin.Products.Handlers
         public async Task Handle(UploadProductImagesCommand request, CancellationToken ct)
         {
             if (request.Files is null || request.Files.Count == 0)
-                throw new InvalidOperationException("Не переданы файлы изображений");
+                throw new DomainException("Не переданы файлы изображений.");
 
             var product = await productRepo.GetWithAttributesAsync(request.ProductId, ct)
-                ?? throw new KeyNotFoundException("Товар не найден");
+                ?? throw new NotFoundException("Товар не найден.");
 
             var uploadedItems = new List<(string Bucket, string Key)>();
             var oldItemsToDelete = new List<(string Bucket, string Key)>();
@@ -98,10 +99,10 @@ namespace Application.Admin.Products.Handlers
         private static string ValidateAndResolveExtension(string contentType, long contentLength)
         {
             if (contentLength <= 0 || contentLength > MaxFileSizeBytes)
-                throw new InvalidOperationException("Каждый файл должен быть до 5MB");
+                throw new DomainException("Каждый файл должен быть до 5MB.");
 
             if (!ContentTypeToExtension.TryGetValue(contentType, out var extension))
-                throw new InvalidOperationException("Разрешены только jpg/png/webp");
+                throw new DomainException("Разрешены только jpg/png/webp.");
 
             return extension;
         }

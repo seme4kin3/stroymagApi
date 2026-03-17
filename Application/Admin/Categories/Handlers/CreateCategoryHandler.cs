@@ -1,5 +1,6 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Categories.Commands;
+using Application.Common.Exceptions;
 using Domain.Catalog;
 using MediatR;
 
@@ -15,7 +16,7 @@ namespace Application.Admin.Categories.Handlers
         public async Task<Guid> Handle(CreateCategoryCommand request, CancellationToken ct)
         {
             if (request.Attributes is null || request.Attributes.Count == 0)
-                throw new InvalidOperationException("Категория должна иметь хотя бы один атрибут.");
+                throw new DomainException("Категория должна иметь хотя бы один атрибут.");
 
             // 1) AttributeDefinition
             var attrIds = request.Attributes
@@ -27,7 +28,7 @@ namespace Application.Admin.Categories.Handlers
             if (attrDefs.Count != attrIds.Length)
             {
                 var missing = attrIds.Where(id => !attrDefs.ContainsKey(id));
-                throw new InvalidOperationException($"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
+                throw new NotFoundException($"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 
             // 2) Units

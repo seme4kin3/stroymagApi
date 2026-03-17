@@ -1,5 +1,6 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Categories.Commands;
+using Application.Common.Exceptions;
 using Domain.Catalog;
 using MediatR;
 
@@ -15,10 +16,10 @@ namespace Application.Admin.Categories.Handlers
         public async Task Handle(UpdateCategoryCommand request, CancellationToken ct)
         {
             var category = await categoryRepo.GetWithAttributesAsync(request.Id, ct)
-                ?? throw new KeyNotFoundException("Категория не найдена");
+                ?? throw new NotFoundException("Категория не найдена.");
 
             if (request.Attributes is null || request.Attributes.Count == 0)
-                throw new InvalidOperationException("Категория должна иметь хотя бы один атрибут.");
+                throw new DomainException("Категория должна иметь хотя бы один атрибут.");
 
             // 1) базовые поля
             category.Rename(request.Name);
@@ -35,7 +36,7 @@ namespace Application.Admin.Categories.Handlers
             if (attrDefs.Count != incomingAttrIds.Length)
             {
                 var missing = incomingAttrIds.Where(id => !attrDefs.ContainsKey(id));
-                throw new InvalidOperationException($"Не найдены AttributeDefinition: {string.Join(", ", missing)}");
+                throw new NotFoundException($"Не найдены определения атрибутов: {string.Join(", ", missing)}");
             }
 
             // 3) Units

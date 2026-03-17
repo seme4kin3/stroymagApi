@@ -1,4 +1,4 @@
-﻿using Application.Abstractions.Admin;
+using Application.Abstractions.Admin;
 using Application.Admin.Brands.Commands;
 using Domain.Catalog;
 using MediatR;
